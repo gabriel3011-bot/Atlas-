@@ -1,6 +1,15 @@
 
 import React from 'react';
-import { LayoutDashboard, DollarSign, Megaphone, Trophy, X, LogOut } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  DollarSign, 
+  Megaphone, 
+  Trophy, 
+  X, 
+  LogOut,
+  ShieldCheck,
+  User
+} from 'lucide-react';
 import { View } from '../types';
 import { supabase } from '../supabaseClient';
 
@@ -12,6 +21,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, onClose }) => {
+  // 4 Abas principais solicitadas
   const menuItems = [
     { id: View.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: View.MARKETING, label: 'Marketing', icon: Megaphone },
@@ -28,33 +38,41 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
     await supabase.auth.signOut();
   };
 
-  const getUsername = () => {
-    // Busca o codinome do email ghost
-    const userEmail = supabase.auth.getUser() ? (window as any)._sessionUserEmail : '';
-    // Como o getUser é async, buscamos do auth nativo se possível
-    const current = (supabase.auth as any).session?.()?.user?.email || 'comandante@atlas.club';
-    return current.split('@')[0].toUpperCase();
+  const getCleanUsername = () => {
+    try {
+      // Tenta obter o email do usuário logado
+      const email = supabase.auth.getUser() ? (supabase.auth as any).session?.()?.user?.email : null;
+      // Fallback para o estado interno se o session helper não estiver disponível no escopo atual
+      const finalEmail = email || (supabase.auth as any).mruSession?.user?.email || 'comandante@atlas.club';
+      return finalEmail.split('@')[0].toUpperCase();
+    } catch (e) {
+      return 'AGENTE ATLAS';
+    }
   };
 
   return (
     <div className={`
-      w-64 h-screen flex flex-col fixed left-0 top-0 z-50 bg-city-black border-r border-white/10 backdrop-blur-xl transition-transform duration-300
-      ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      w-64 h-screen flex flex-col fixed left-0 top-0 z-50 bg-city-black border-r border-white/5 backdrop-blur-2xl transition-transform duration-500 ease-out
+      ${isOpen ? 'translate-x-0 shadow-[20px_0_50px_rgba(0,0,0,0.5)]' : '-translate-x-full lg:translate-x-0'}
     `}>
-      <div className="pt-12 pb-10 px-8 flex flex-col items-center border-b border-white/5 relative">
-        <button onClick={onClose} className="lg:hidden absolute top-4 right-4 p-2 text-gray-600 hover:text-white"><X size={20} /></button>
+      {/* Sidebar Brand */}
+      <div className="pt-16 pb-12 px-8 flex flex-col items-center border-b border-white/5 relative">
+        <button onClick={onClose} className="lg:hidden absolute top-6 right-6 p-2 text-gray-600 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
         
-        <div className="text-center">
-            <h1 className="font-serif text-3xl font-bold tracking-tighter leading-none text-white italic">ATLAS</h1>
-            <div className="flex items-center gap-2 mt-2">
-                <div className="h-[1px] w-4 bg-copper-dark/40"></div>
-                <span className="text-[8px] text-copper-light uppercase tracking-[0.4em] font-black">Elite 2026</span>
-                <div className="h-[1px] w-4 bg-copper-dark/40"></div>
+        <div className="text-center group cursor-default">
+            <h1 className="font-serif text-4xl font-black tracking-tighter leading-none text-white italic transition-all group-hover:tracking-[0.1em]">ATLAS</h1>
+            <div className="flex items-center justify-center gap-3 mt-3">
+                <div className="h-[1px] w-5 bg-copper-dark/40"></div>
+                <span className="text-[9px] text-copper-light uppercase tracking-[0.5em] font-black">Elite 2026</span>
+                <div className="h-[1px] w-5 bg-copper-dark/40"></div>
             </div>
         </div>
       </div>
 
-      <nav className="flex-1 py-10 px-6 space-y-2 overflow-y-auto custom-scrollbar">
+      {/* Navigation */}
+      <nav className="flex-1 py-12 px-6 space-y-3 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -62,14 +80,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
                 isActive
-                  ? 'bg-white/5 text-white border border-white/5 shadow-xl'
+                  ? 'bg-white/5 text-white border border-white/5 shadow-2xl'
                   : 'text-gray-600 hover:text-copper-light hover:bg-white/[0.02]'
               }`}
             >
-              <Icon size={18} className={isActive ? 'text-copper-light' : ''} />
-              <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'group-hover:text-copper-light'}`}>
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-copper-gradient rounded-r-full shadow-[0_0_10px_#C5836A]"></div>
+              )}
+              <Icon size={18} className={`${isActive ? 'text-copper-light' : 'group-hover:text-copper-light'} transition-colors`} />
+              <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-white' : 'group-hover:text-copper-light'}`}>
                 {item.label}
               </span>
             </button>
@@ -77,18 +98,37 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
         })}
       </nav>
 
-      <div className="p-6 border-t border-white/5 bg-city-black/50">
-        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-copper-gradient flex items-center justify-center text-[10px] text-black font-black italic">A</div>
-              <div>
-                <p className="text-[10px] font-black text-white tracking-tighter truncate max-w-[100px]">{getUsername()}</p>
-                <p className="text-[8px] text-copper-light uppercase tracking-widest font-black italic opacity-60">Status: ON</p>
-              </div>
+      {/* User Footer Section */}
+      <div className="p-6 border-t border-white/5 bg-black/40 backdrop-blur-3xl">
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/5 shadow-inner">
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-copper-dark via-copper-light to-white p-[1.5px] shrink-0">
+                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[11px] text-white font-black italic">
+                        {getCleanUsername().charAt(0)}
+                      </div>
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-[10px] font-black text-white tracking-tighter truncate">{getCleanUsername()}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"></div>
+                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Secure Session</span>
+                      </div>
+                    </div>
+                </div>
+                <button 
+                  onClick={handleLogout} 
+                  title="Encerrar Sessão"
+                  className="p-2.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-90"
+                >
+                  <LogOut size={16} />
+                </button>
             </div>
-            <button onClick={handleLogout} className="p-2 text-gray-600 hover:text-red-400 transition-colors">
-              <LogOut size={16} />
-            </button>
+            
+            <div className="flex items-center justify-center gap-2 py-2 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+               <ShieldCheck size={12} className="text-copper-light" />
+               <span className="text-[8px] font-black uppercase tracking-[0.3em]">End-to-End Encrypted</span>
+            </div>
         </div>
       </div>
     </div>
