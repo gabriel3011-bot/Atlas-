@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Task, TaskStatus, UrgencyLevel } from '../types';
-import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle } from 'lucide-react';
+import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle, WifiOff } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 const KanbanBoard: React.FC = () => {
@@ -11,6 +11,7 @@ const KanbanBoard: React.FC = () => {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // Form State
   const [newTask, setNewTask] = useState({
@@ -34,10 +35,12 @@ const KanbanBoard: React.FC = () => {
 
   const fetchTasks = async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       if (isSupabaseConfigured()) {
         const { data, error } = await supabase.from('tasks').select('*').order('created_at');
-        if (!error && data) setTasks(data);
+        if (error) throw error;
+        if (data) setTasks(data);
       } else {
         await new Promise(resolve => setTimeout(resolve, 800));
         if (tasks.length === 0) {
@@ -53,6 +56,9 @@ const KanbanBoard: React.FC = () => {
           ]);
         }
       }
+    } catch (err: any) {
+      console.error("Erro ao carregar tarefas:", err);
+      setFetchError("Falha ao sincronizar com o servidor. Verifique sua conexão.");
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +71,11 @@ const KanbanBoard: React.FC = () => {
     setTasks((prev) => [...prev, mockTask]);
 
     if (isSupabaseConfigured()) {
-      await supabase.from('tasks').insert([taskData]);
+      try {
+        await supabase.from('tasks').insert([taskData]);
+      } catch (err) {
+        console.error("Erro ao salvar tarefa remota:", err);
+      }
     }
 
     setIsModalOpen(false);
@@ -76,7 +86,11 @@ const KanbanBoard: React.FC = () => {
     setTasks(prev => prev.filter(t => t.id !== id));
     setIsConfirmDeleteOpen(null);
     if (isSupabaseConfigured()) {
-        await supabase.from('tasks').delete().eq('id', id);
+        try {
+            await supabase.from('tasks').delete().eq('id', id);
+        } catch (err) {
+            console.error("Erro ao deletar tarefa remota:", err);
+        }
     }
   };
 
@@ -98,10 +112,14 @@ const KanbanBoard: React.FC = () => {
     );
 
     if (isSupabaseConfigured()) {
-        const updateData: any = { status: newStatus };
-        if (newStatus === 'DONE') updateData.completed_at = now;
-        else updateData.completed_at = null;
-        await supabase.from('tasks').update(updateData).eq('id', taskId);
+        try {
+            const updateData: any = { status: newStatus };
+            if (newStatus === 'DONE') updateData.completed_at = now;
+            else updateData.completed_at = null;
+            await supabase.from('tasks').update(updateData).eq('id', taskId);
+        } catch (err) {
+            console.error("Erro ao atualizar status remoto:", err);
+        }
     }
   };
 
@@ -147,7 +165,7 @@ const KanbanBoard: React.FC = () => {
 
   const getCategoryColor = (category: string) => {
       const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500', 'bg-indigo-500'];
-      const index = category.length % colors.length;
+      const index = Math.abs(category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
       return colors[index];
   };
 
@@ -188,6 +206,16 @@ const KanbanBoard: React.FC = () => {
             )}
         </div>
       </div>
+
+      {fetchError && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center gap-3 text-red-400 text-sm font-medium">
+                  <WifiOff size={18} />
+                  {fetchError}
+              </div>
+              <button onClick={fetchTasks} className="text-[10px] uppercase font-bold tracking-widest text-white bg-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/40 transition">Tentar Novamente</button>
+          </div>
+      )}
 
       {isLoading ? (
         <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[400px]">
@@ -230,12 +258,12 @@ const KanbanBoard: React.FC = () => {
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="flex-1 overflow-x-auto pb-6">
-              <div className="flex gap-8 h-full min-w-max"> {/* Aumentado gap para 8 */}
+              <div className="flex gap-8 h-full min-w-max">
                 {columns.map((col) => (
                   <div key={col.id} className="w-80 flex flex-col bg-city-panel/40 backdrop-blur-md rounded-2xl border border-white/5">
                     <div className="p-5 border-b border-white/5 flex items-center justify-between">
                        <h3 className="font-serif text-xl text-gray-200">{col.label}</h3>
-                       <span className="text-[10px] font-bold text-copper-light bg-copper-DEFAULT/10 px-2 py-1 rounded border border-copper-DEFAULT/20 uppercase tracking-tighter">
+                       <span className="text-[10px] font-bold text-copper-light bg-copper-light/10 px-2 py-1 rounded border border-copper-light/20 uppercase tracking-tighter">
                           {activeTasks.filter((t) => t.status === col.id).length} itens
                        </span>
                     </div>
@@ -245,8 +273,8 @@ const KanbanBoard: React.FC = () => {
                           <div 
                               {...provided.droppableProps}
                               ref={provided.innerRef}
-                              className={`flex-1 p-4 space-y-4 overflow-y-auto transition-all duration-300 rounded-b-2xl min-h-[300px] ${ /* Aumentado padding e space-y */
-                                  snapshot.isDraggingOver ? 'bg-copper-DEFAULT/5 shadow-inner' : 'bg-transparent'
+                              className={`flex-1 p-4 space-y-4 overflow-y-auto transition-all duration-300 rounded-b-2xl min-h-[300px] ${
+                                  snapshot.isDraggingOver ? 'bg-copper-dark/5 shadow-inner' : 'bg-transparent'
                               }`}
                           >
                               {activeTasks
@@ -265,7 +293,7 @@ const KanbanBoard: React.FC = () => {
                                                   ${snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 ring-2 ring-copper-DEFAULT/50 z-50 bg-[#18181b] cursor-grabbing' : 'cursor-grab hover:border-white/20'}
                                               `}
                                           >
-                                              <div className="absolute top-0 left-0 w-[2px] h-full bg-copper-gradient opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                              <div className="absolute top-0 left-0 w-[2px] h-full bg-copper-DEFAULT opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                               
                                               <button 
                                                 onClick={() => setIsConfirmDeleteOpen(task.id)}
@@ -285,7 +313,7 @@ const KanbanBoard: React.FC = () => {
                                                   <div className="flex items-center gap-3">
                                                       {task.deadline && (
                                                           <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-bold uppercase">
-                                                              <Calendar size={12} className="text-copper-DEFAULT" />
+                                                              <Calendar size={12} className="text-copper-light" />
                                                               <span>{new Date(task.deadline).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</span>
                                                           </div>
                                                       )}
@@ -295,7 +323,7 @@ const KanbanBoard: React.FC = () => {
                                                            </div>
                                                       )}
                                                   </div>
-                                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-[10px] text-white font-bold shadow-md">
+                                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-copper-dark to-black border border-white/10 flex items-center justify-center text-[10px] text-white font-bold shadow-md">
                                                       {task.assigned_to.charAt(0)}
                                                   </div>
                                               </div>
@@ -315,7 +343,6 @@ const KanbanBoard: React.FC = () => {
         </DragDropContext>
       )}
 
-      {/* Modais omitidos aqui mas permanecem iguais no código real para brevidade do XML */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)}></div>
@@ -379,7 +406,7 @@ const KanbanBoard: React.FC = () => {
                           <AlertTriangle size={32} />
                       </div>
                       <h3 className="font-serif text-2xl text-white mb-2">Excluir Tarefa?</h3>
-                      <p className="text-gray-400 text-sm mb-8 leading-relaxed">Esta ação removerá permanentemente a tarefa do Atlas.</p>
+                      <p className="text-gray-400 text-sm mb-8 leading-relaxed">Esta ação removerá permanentemente a tarefa do sistema.</p>
                       <div className="flex gap-3">
                           <button onClick={() => setIsConfirmDeleteOpen(null)} className="flex-1 py-3 text-gray-400 font-semibold hover:bg-white/5 rounded-xl transition">Manter</button>
                           <button onClick={() => handleDeleteTask(isConfirmDeleteOpen)} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition transform active:scale-95">Excluir</button>
