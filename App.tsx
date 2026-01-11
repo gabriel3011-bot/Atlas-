@@ -1,6 +1,7 @@
-
 import React, { useState, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
+import LoginScreen from './components/LoginScreen';
+import FeedbackWidget from './components/FeedbackWidget';
 import { View } from './types';
 import { 
   Loader2, 
@@ -15,14 +16,18 @@ const MOCK_USER = {
   email: 'comissao@atlas.club'
 };
 
-// Lazy imports para performance e segurança (Safe Mode)
+// Lazy imports dos Módulos (Conectando os arquivos que você enviou)
 const KanbanBoard = lazy(() => import('./components/KanbanBoard'));
 const MarketingGrid = lazy(() => import('./components/MarketingGrid'));
 const FinanceDashboard = lazy(() => import('./components/FinanceDashboard'));
 const SecretClubGame2048 = lazy(() => import('./components/SecretClubGame2048'));
 const SecretTermoGame = lazy(() => import('./components/SecretTermoGame'));
+// Novos Módulos adicionados
+const MembersTab = lazy(() => import('./components/MembersTab'));
+const EventsCalendar = lazy(() => import('./components/EventsCalendar'));
+const LegalDocs = lazy(() => import('./components/LegalDocs'));
 
-// Fallback visual para carregamento de módulos
+// Fallback visual para carregamento
 const ModuleFallback = () => (
   <div className="flex flex-col items-center justify-center h-[60vh] w-full bg-city-black/20 rounded-3xl border border-dashed border-white/5 animate-in fade-in duration-500">
     <Loader2 className="text-copper-DEFAULT animate-spin mb-4" size={32} />
@@ -33,9 +38,29 @@ const ModuleFallback = () => (
 );
 
 const App: React.FC = () => {
+  // Estado de Login (Começa falso para exigir senha)
+  // Se quiser pular o login para testes, mude para useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [activeGame, setActiveGame] = useState<'termo' | '2048'>('termo');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Se não estiver logado, mostra a tela de Login
+  if (!isLoggedIn) {
+    return (
+      <div className="relative">
+        <LoginScreen />
+        {/* Botão Secreto de DEV para pular o login (Canto inferior direito) */}
+        <button 
+          onClick={() => setIsLoggedIn(true)}
+          className="fixed bottom-2 right-2 z-[250] opacity-30 hover:opacity-100 text-[10px] text-white font-bold bg-red-500 px-2 py-1 rounded"
+        >
+          [DEV: Pular Login]
+        </button>
+      </div>
+    );
+  }
 
   const renderCurrentView = () => {
     return (
@@ -48,6 +73,14 @@ const App: React.FC = () => {
               return <MarketingGrid />;
             case View.FINANCE:
               return <FinanceDashboard />;
+            case View.MEMBERS:     // Nova Rota
+              return <MembersTab />;
+            case View.EVENTS:      // Nova Rota
+              return <EventsCalendar />;
+            case View.LEGAL:       // Nova Rota
+              return <LegalDocs />;
+            // Nota: Vi que você adicionou VOTING no types.ts, mas ainda não temos o componente Voting.
+            // case View.VOTING: return <VotingComponent />; 
             case View.GAME:
               return (
                 <div className="flex flex-col h-full animate-in fade-in duration-700">
@@ -123,6 +156,9 @@ const App: React.FC = () => {
         <div className="flex-1 w-full px-6 md:px-16 py-12 max-w-[1500px] mx-auto transition-all duration-700">
           {renderCurrentView()}
         </div>
+        
+        {/* Widget Flutuante */}
+        <FeedbackWidget currentView={currentView} userEmail={MOCK_USER.email} />
       </main>
     </div>
   );
