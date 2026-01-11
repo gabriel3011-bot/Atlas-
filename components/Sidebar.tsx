@@ -1,14 +1,16 @@
 
 import React from 'react';
-import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy } from 'lucide-react';
+import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X } from 'lucide-react';
 import { View } from '../types';
 
 interface SidebarProps {
   currentView: View;
   setCurrentView: (view: View) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, onClose }) => {
   const menuItems = [
     { id: View.DASHBOARD, label: 'Quadro', icon: LayoutDashboard },
     { id: View.FINANCE, label: 'Financeiro', icon: DollarSign },
@@ -20,10 +22,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
     { id: View.GAME, label: 'Secret Club', icon: Trophy },
   ];
 
+  const handleNavClick = (view: View) => {
+    setCurrentView(view);
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="w-64 h-screen flex flex-col fixed left-0 top-0 z-50 bg-city-black border-r border-white/10 backdrop-blur-xl">
+    <div className={`
+      w-64 h-screen flex flex-col fixed left-0 top-0 z-50 bg-city-black border-r border-white/10 backdrop-blur-xl transition-transform duration-300
+      ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+    `}>
       {/* Brand Header: Atlas Original */}
       <div className="pt-10 pb-8 px-6 flex flex-col items-center border-b border-white/5 relative overflow-hidden group">
+        {/* Close Button Mobile */}
+        <button 
+          onClick={onClose}
+          className="lg:hidden absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition-colors"
+        >
+          <X size={20} />
+        </button>
+
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-48 bg-copper-dark/20 blur-[70px] pointer-events-none group-hover:bg-copper-light/10 transition-all duration-1000"></div>
         
         {/* Logo Original Atlas */}
@@ -60,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
           return (
             <button
               key={item.id}
-              onClick={() => setCurrentView(item.id)}
+              onClick={() => handleNavClick(item.id)}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                 isActive
                   ? 'bg-white/5 text-white shadow-xl border border-white/5'
