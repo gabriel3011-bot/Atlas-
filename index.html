@@ -1,102 +1,12 @@
-
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas 2026</title>
-    <!-- Google Fonts: Playfair Display (Serif) & Inter (Sans) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'],
-            },
-            colors: {
-              copper: {
-                light: '#EBC0A0',
-                DEFAULT: '#C5836A',
-                dark: '#8C5243',
-                metallic: '#B87333',
-              },
-              city: {
-                black: '#050505', // Deep Black
-                dark: '#121212', // Dark Charcoal
-                panel: '#18181b', // Zinc 900
-                border: '#27272a' // Zinc 800
-              }
-            },
-            backgroundImage: {
-              'copper-gradient': 'linear-gradient(135deg, #dfa67b 0%, #ac6356 100%)',
-              'night-gradient': 'linear-gradient(to bottom, #050505, #121212)',
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      /* Custom Scrollbar Styling - Ultra Minimalist */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #27272a; /* city-border, very subtle */
-        border-radius: 10px;
-        transition: background 0.3s ease;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #C5836A; /* copper-DEFAULT on interaction */
-      }
-      /* Firefox support */
-      .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: #27272a transparent;
-      }
-
-      /* Helper for full page or large sections */
-      ::-webkit-scrollbar {
-        width: 5px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #050505;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #18181b;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #C5836A;
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
-    "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
-  }
-}
-</script>
-</head>
-  <body class="bg-city-black text-gray-300 antialiased selection:bg-copper-DEFAULT selection:text-white custom-scrollbar">
+  </head>
+  <body>
     <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
