@@ -1,5 +1,5 @@
 {
-  "name": "gestão-comissão",
+  "name": "atlas-2026",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,17 +9,21 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "recharts": "2.12.0",
-    "lucide-react": "0.330.0",
-    "@supabase/supabase-js": "2.39.7",
-    "@hello-pangea/dnd": "16.6.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "lucide-react": "^0.294.0",
+    "recharts": "^2.10.3",
+    "@hello-pangea/dnd": "^16.5.0",
+    "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "vite": "^5.0.0"
   }
 }
