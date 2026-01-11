@@ -1,0 +1,5 @@
+{
+  "name": "Gestão Comissão",
+  "description": "Uma ferramenta completa de gestão para Comissões de Formatura com tarefas Kanban, controle financeiro, planejamento de eventos e ferramentas de marketing. Design com a paleta de cores IBMEC e powered by Supabase.",
+  "requestFramePermissions": []
+}
