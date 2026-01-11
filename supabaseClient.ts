@@ -1,19 +1,27 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-// NOTE: In a real environment, these are process.env.REACT_APP_SUPABASE_URL etc.
-// For this demo, we check if they exist. If not, the app will fall back to mock data
-// within the components (handled in the service layer pattern).
+// Proteção contra crash em ambientes sem process.env (Vite/ESM)
+const getEnv = (key: string) => {
+  try {
+    // Tenta obter de process.env (Node/Webpack) ou import.meta.env (Vite)
+    return (typeof process !== 'undefined' && process.env ? process.env[key] : null) 
+      || (import.meta as any).env?.[`VITE_${key}`] 
+      || null;
+  } catch (e) {
+    return null;
+  }
+};
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = getEnv('SUPABASE_URL');
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
 
-// To avoid "Error: supabaseUrl is required" when env vars are missing, we pass a placeholder.
-// The app checks isSupabaseConfigured() before making actual requests.
+// Placeholder para evitar erro de inicialização se as chaves estiverem vazias
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder'
 );
 
 export const isSupabaseConfigured = () => {
-  return !!supabaseUrl && !!supabaseAnonKey;
+  return !!supabaseUrl && !!supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co';
 };
