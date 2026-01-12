@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Poll } from '../types';
 import { Clock, CheckCircle2, BarChart2, Plus, X, Trash2 } from 'lucide-react';
 
@@ -22,9 +21,10 @@ const VotingTab: React.FC = () => {
   }, []);
 
   const fetchPolls = async () => {
-    if (isSupabaseConfigured()) {
-      const { data } = await supabase.from('polls').select('*');
-      if (data) setPolls(data);
+// if (isSupabaseConfigured()) {
+    //   const { data } = await supabase.from('polls').select('*');
+    //   if (data) setPolls(data);
+    // } else {
     } else {
       // Mock Data
       setPolls([
