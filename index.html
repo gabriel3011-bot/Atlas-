@@ -1,23 +1,72 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atlas | Gestão Comissão</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; }
-  body { background: #ffffff; color: #000000; font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; }
-  #root { text-align: center; padding: 20px; }
-  h1 { font-size: 3rem; margin-bottom: 1rem; color: #0066cc; }
-  p { font-size: 1.5rem; color: #000000; margin: 0.5rem 0; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas | Gestão Comissão</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+          },
+          colors: {
+            copper: {
+              DEFAULT: '#C5836A'
+            },
+            city: {
+              black: '#050505',
+              panel: '#18181b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom, #050505, #121212);
+    }
+  </style>
 </head>
-<body>
-  <div id="root">
-    <h1>⚠️ Atlas</h1>
-    <p>Sistema de Gestão de Comissão</p>
-    <p style="font-size: 1rem; color: #666666; margin-top: 2rem;">Aguardando carregamento...</p>
+
+<body class="text-gray-300">
+
+  <div class="flex items-center justify-center min-h-screen">
+    <div class="bg-city-panel rounded-2xl p-10 w-[380px] shadow-2xl text-center">
+      
+      <div class="mb-6">
+        <h1 class="text-3xl font-serif text-copper-DEFAULT">ATLAS</h1>
+        <p class="text-xs tracking-widest text-gray-400 mt-1">
+          ACESSO COMISSÕES
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <button class="w-full py-3 rounded-xl bg-gradient-to-r from-[#dfa67b] to-[#ac6356] text-black font-medium">
+          ENTRAR NO SISTEMA →
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-500 mt-6">
+        Gestão Centralizada de Formaturas 2026
+      </p>
+
+    </div>
   </div>
+
 </body>
 </html>
