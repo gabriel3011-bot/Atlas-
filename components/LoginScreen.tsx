@@ -14,7 +14,12 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     
-    try {
+    try 
+    // Demo mode - allow any login
+    if (email.includes('demo')) {
+      setLoading(false);
+      return;
+    }{
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
