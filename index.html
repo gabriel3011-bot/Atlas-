@@ -74,7 +74,7 @@
 <body class="bg-city-black text-gray-300 antialiased">
 
 <!-- LOGIN -->
-<div id="login-screen" class="min-h-screen flex items-center justify-center bg-night-gradient">
+<div id="login-screen" class="min-h-screen flex items-center justify-center bg-night-gradient" style="display:none;">
   <div class="w-full max-w-sm bg-city-panel rounded-2xl border border-city-border p-8 shadow-xl">
 
     <div class="text-center mb-6">
@@ -104,7 +104,7 @@
 </div>
 
 <!-- APP -->
-<div id="app-root" style=le="display:block;">
+<div id="app-root" style=="display:block;">
   <div id="root"></div>
 </div>
 
@@ -125,6 +125,13 @@
       script.src = "/main.js";
       document.body.appendChild(script);
   }
+   // Auto-load app on page load
+ document.addEventListener('DOMContentLoaded', () => {
+   const script = document.createElement('script');
+   script.type = 'module';
+   script.src = '/main.js';
+   document.body.appendChild(script);
+ });
 </script>
 
 </body>
