@@ -43,7 +43,8 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
+  46
+    if (!session) {
     return <LoginScreen />;
   }
 
