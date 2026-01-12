@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Member } from '../types';
 import { Plus, MessageCircle, X, Check, User, Phone, MapPin, FileText, Camera, Loader2 } from 'lucide-react';
 
