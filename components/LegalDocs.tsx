@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { LegalDocument } from '../types';
 import { FileText, Download, CheckCircle, Clock, Plus, X, Loader2, FileUp } from 'lucide-react';
 
@@ -16,10 +17,10 @@ const LegalDocs: React.FC = () => {
   }, []);
 
   const fetchDocs = async () => {
-// if (isSupabaseConfigured()) {
-    //   const { data } = await supabase.from('documents').select('*').order('id', { ascending: false });
-    //   if (data) setDocs(data);
-    // } else {
+    if (isSupabaseConfigured()) {
+      const { data } = await supabase.from('documents').select('*').order('id', { ascending: false });
+      if (data) setDocs(data);
+    } else {
       setDocs([
         { id: 1, title: 'Contrato Local - Grand Hotel', file_url: '#', status: 'signed', related_party: 'Grand Hotel' },
         { id: 2, title: 'Acordo Serviços DJ', file_url: '#', status: 'pending', related_party: 'DJ Mixer' },

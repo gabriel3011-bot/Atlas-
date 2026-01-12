@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Member } from '../types';
 import { Plus, MessageCircle, X, Check, User, Phone, MapPin, FileText, Camera, Loader2 } from 'lucide-react';
 
@@ -24,10 +25,10 @@ const MembersTab: React.FC = () => {
   }, []);
 
   const fetchMembers = async () => {
-// if (isSuperbaseConfigured()) {
-    //   const { data } = await supabase.from('committee_members').select('*').order('id', { ascending: false }});
-    //   if (data) setMembers(data);
-    // } else {
+    if (isSupabaseConfigured()) {
+      const { data } = await supabase.from('committee_members').select('*').order('id', { ascending: false });
+      if (data) setMembers(data);
+    } else {
       setMembers([
         { id: 1, name: 'Ana Silva', role: 'Presidente', phone: '5511999999999', photo_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80', cpf: '123.456.789-00', address: 'Rua das Flores, 123' },
         { id: 2, name: 'Carlos Oliveira', role: 'Tesoureiro', phone: '5511988888888', photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', cpf: '234.567.890-11', address: 'Av. Paulista, 1000' },
@@ -44,19 +45,23 @@ const MembersTab: React.FC = () => {
         let finalPhotoUrl = newMember.photo_url || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=200&q=80';
 
         // 1. Processar Upload se houver arquivo
-// if (selectedFile && isSupabaseConfigured()) {
-    //   const fileExt = selectedFile.name.split('.').pop();
-    //   const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    //   const filePath = `${fileName}`;
-    //   const { error: uploadError } = await supabase.storage
-    //     .from('member-avatars')
-    //     .upload(filePath, selectedFile);
-    //   if (uploadError) throw uploadError;
-    //   const { data: { publicUrl } } = supabase.storage
-    //     .from('member-avatars')
-    //     .getPublicUrl(filePath);
-    //   finalPhotoUrl = publicUrl;
-    // }
+        if (selectedFile && isSupabaseConfigured()) {
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('member-avatars')
+                .upload(filePath, selectedFile);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('member-avatars')
+                .getPublicUrl(filePath);
+            
+            finalPhotoUrl = publicUrl;
+        }
 
         const memberPayload = {
             name: newMember.name,

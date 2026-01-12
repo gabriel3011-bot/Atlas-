@@ -21,6 +21,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { MarketingPost, MarketingStatus } from '../types';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
 type MarketingViewMode = 'calendar' | 'feed';
 
