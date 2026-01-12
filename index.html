@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas | Gestão Comissão</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -19,18 +15,8 @@
               serif: ['Playfair Display', 'serif'],
             },
             colors: {
-              copper: {
-                light: '#EBC0A0',
-                DEFAULT: '#C5836A',
-                dark: '#8C5243',
-                metallic: '#B87333',
-              },
-              city: {
-                black: '#050505', 
-                dark: '#121212', 
-                panel: '#18181b', 
-                border: '#27272a' 
-              }
+              copper: { light: '#EBC0A0', DEFAULT: '#C5836A', dark: '#8C5243', metallic: '#B87333' },
+              city: { black: '#050505', dark: '#121212', panel: '#18181b', border: '#27272a' }
             },
             backgroundImage: {
               'copper-gradient': 'linear-gradient(135deg, #dfa67b 0%, #ac6356 100%)',
@@ -40,16 +26,8 @@
         }
       }
     </script>
-
-    <style>
-      html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #050505; }
-      .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #C5836A; }
-    </style>
   </head>
-  <body class="bg-city-black text-gray-300">
+  <body class="bg-[#050505] text-gray-300">
     <div id="root"></div>
     
     <script type="module" src="/index.tsx"></script>
