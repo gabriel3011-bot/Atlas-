@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atlas | Gestão Comissão</title>
+  <title>Atlas | Gestão da Comissão</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,11 +23,14 @@
           },
           colors: {
             copper: {
-              DEFAULT: '#C5836A'
+              DEFAULT: '#C5836A',
+              dark: '#8C5243'
             },
             city: {
               black: '#050505',
-              panel: '#18181b'
+              dark: '#121212',
+              panel: '#18181b',
+              border: '#27272a'
             }
           }
         }
@@ -43,30 +46,64 @@
   </style>
 </head>
 
-<body class="text-gray-300">
+<body class="text-gray-300 font-sans">
 
-  <div class="flex items-center justify-center min-h-screen">
-    <div class="bg-city-panel rounded-2xl p-10 w-[380px] shadow-2xl text-center">
-      
-      <div class="mb-6">
-        <h1 class="text-3xl font-serif text-copper-DEFAULT">ATLAS</h1>
-        <p class="text-xs tracking-widest text-gray-400 mt-1">
-          ACESSO COMISSÕES
-        </p>
+  <!-- HEADER -->
+  <header class="flex items-center justify-between px-8 py-5 border-b border-city-border">
+    <div>
+      <h1 class="text-2xl font-serif text-copper-DEFAULT">ATLAS</h1>
+      <p class="text-xs tracking-widest text-gray-400">
+        GESTÃO DA COMISSÃO
+      </p>
+    </div>
+
+    <span class="text-sm text-gray-500">
+      Comissão de Formatura 2026
+    </span>
+  </header>
+
+  <!-- MAIN -->
+  <main class="p-8">
+
+    <!-- Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
+        <h2 class="text-sm text-gray-400 mb-2">Saldo em Caixa</h2>
+        <p class="text-3xl text-copper-DEFAULT font-medium">R$ 0,00</p>
       </div>
 
-      <div class="space-y-4">
-        <button class="w-full py-3 rounded-xl bg-gradient-to-r from-[#dfa67b] to-[#ac6356] text-black font-medium">
-          ENTRAR NO SISTEMA →
-        </button>
+      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
+        <h2 class="text-sm text-gray-400 mb-2">Pagamentos Pendentes</h2>
+        <p class="text-3xl text-copper-DEFAULT font-medium">0</p>
       </div>
 
-      <p class="text-xs text-gray-500 mt-6">
-        Gestão Centralizada de Formaturas 2026
+      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
+        <h2 class="text-sm text-gray-400 mb-2">Eventos Planejados</h2>
+        <p class="text-3xl text-copper-DEFAULT font-medium">0</p>
+      </div>
+
+    </section>
+
+    <!-- Conteúdo principal -->
+    <section class="bg-city-panel border border-city-border rounded-2xl p-6">
+
+      <h3 class="text-lg font-serif text-copper-DEFAULT mb-4">
+        Painel Geral
+      </h3>
+
+      <p class="text-sm text-gray-400">
+        Este é o painel central da comissão de formatura.  
+        Aqui vocês podem acompanhar o financeiro, eventos, decisões e organização geral.
       </p>
 
-    </div>
-  </div>
+      <div class="mt-6 text-sm text-gray-500">
+        🔒 Acesso interno da comissão
+      </div>
+
+    </section>
+
+  </main>
 
 </body>
 </html>
