@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { RefreshCw, Crown, Trophy, Loader2, Save, User as UserIcon, Medal, Star } from 'lucide-react';
 
 type Grid = number[][];
