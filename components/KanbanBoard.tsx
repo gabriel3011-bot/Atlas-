@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Task, TaskStatus, UrgencyLevel } from '../types';
 import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle, WifiOff } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -37,12 +36,12 @@ const KanbanBoard: React.FC = () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      if (isSupabaseConfigured()) {
-        const { data, error } = await supabase.from('tasks').select('*').order('created_at');
-        if (error) throw error;
-        if (data) setTasks(data);
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 800));
+// if (isSupabaseConfigured()) {
+    //   const { data, error } = await supabase.from('tasks').select('*').order('created_at');
+    //   if (error) throw error;
+    //   if (data) setTasks(data);
+    // } else {
+    //   await new Promise((resolve) => setTimeout(resolve, 300));
         if (tasks.length === 0) {
           const now = new Date();
           const tenMinsAgo = new Date(now.getTime() - 11 * 60000).toISOString();
