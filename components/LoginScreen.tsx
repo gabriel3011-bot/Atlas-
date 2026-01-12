@@ -15,6 +15,8 @@ const LoginScreen: React.FC = () => {
     setError(null);
     
     try 
+    setLoading(false);
+    return;
     // Demo mode - allow any login
     if (email.includes('demo')) {
       setLoading(false);
