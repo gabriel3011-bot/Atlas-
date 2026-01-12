@@ -88,5 +88,3 @@ export enum View {
   VOTING = 'VOTING',
   GAME = 'GAME'
 }
-
-// Updated
