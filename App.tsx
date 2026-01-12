@@ -43,8 +43,7 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return <LoginScreen />;
+ if (true) {    return <LoginScreen />;
   }
 
   const renderCurrentView = () => {
