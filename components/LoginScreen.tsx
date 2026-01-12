@@ -1,60 +1,30 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Loader2, Lock, Mail, ChevronRight, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Lock, Mail, ChevronRight, AlertCircle } from 'lucide-react';
 
 const LoginScreen: React.FC = () => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccessMsg(null);
-
-    const domain = '@comissao2026.com';
 
     try {
-      if (mode === 'signup') {
-        // DOMAIN VALIDATION (RESTRICTED ACCESS)
-        if (!email.toLowerCase().endsWith(domain)) {
-          throw new Error(`Acesso restrito. Use seu login da comissão (ex: nome${domain}).`);
-        }
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        if (signUpError) throw signUpError;
-
-        // Se o email_confirm está desativado no Supabase, o data.session existirá imediatamente
-        if (data.session) {
-          setSuccessMsg('Acesso autorizado! Preparando seu dashboard...');
-          // O App.tsx detectará a mudança de sessão automaticamente
-        } else {
-          setSuccessMsg('Solicitação enviada. Verifique seu e-mail (ou spam) para confirmar.');
-          setMode('login');
-        }
-      } else {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (authError) throw authError;
-      }
+      if (authError) throw authError;
     } catch (err: any) {
       let message = err.message;
       if (message === 'Invalid login credentials') {
         message = 'Acesso negado. Credenciais não encontradas no Clube.';
-      } else if (message.includes('User already registered')) {
-        message = 'Este e-mail já possui acesso. Tente fazer login.';
       }
       setError(message);
     } finally {
@@ -88,7 +58,7 @@ const LoginScreen: React.FC = () => {
             <div className="mt-4 flex items-center gap-3">
                 <div className="h-[1px] w-8 bg-copper-dark/40"></div>
                 <span className="text-[10px] text-copper-light uppercase tracking-[0.5em] font-black">
-                  {mode === 'login' ? 'Membros Exclusivos' : 'Solicitar Ingresso'}
+                  Membros Exclusivos
                 </span>
                 <div className="h-[1px] w-8 bg-copper-dark/40"></div>
             </div>
@@ -106,11 +76,6 @@ const LoginScreen: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                     />
-                    {mode === 'signup' && (
-                        <p className="mt-2 text-[10px] text-copper-light/60 font-medium tracking-wide animate-in fade-in slide-in-from-left-2">
-                           Use seu ID da comissão (nome@comissao2026.com)
-                        </p>
-                    )}
                 </div>
                 <div className="relative group">
                     <Lock size={16} className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-copper-light transition-colors" />
@@ -132,12 +97,6 @@ const LoginScreen: React.FC = () => {
                 </div>
             )}
 
-            {successMsg && (
-                <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/20 px-4 py-3 rounded-xl text-xs font-bold animate-in slide-in-from-top-2 duration-300 backdrop-blur-md shadow-lg">
-                    <CheckCircle2 size={14} className="shrink-0" /> {successMsg}
-                </div>
-            )}
-
             <button 
                 type="submit" 
                 disabled={loading}
@@ -147,39 +106,11 @@ const LoginScreen: React.FC = () => {
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
                   <>
-                    {mode === 'login' ? 'Acessar o Clube' : 'Garantir Acesso'} 
+                    Acessar o Clube
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
             </button>
-
-            <div className="text-center pt-4">
-              {mode === 'login' ? (
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setMode('signup');
-                    setError(null);
-                    setSuccessMsg(null);
-                  }}
-                  className="text-[10px] text-gray-500 hover:text-copper-light uppercase tracking-widest font-bold transition-colors"
-                >
-                  Ainda não tem convite? <span className="text-copper-DEFAULT border-b border-copper-dark/50 pb-0.5 ml-1">Solicite acesso</span>
-                </button>
-              ) : (
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setMode('login');
-                    setError(null);
-                    setSuccessMsg(null);
-                  }}
-                  className="text-[10px] text-gray-500 hover:text-copper-light uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 mx-auto"
-                >
-                  <ArrowLeft size={12} /> Voltar para Login
-                </button>
-              )}
-            </div>
         </form>
 
         <div className="mt-16 flex flex-col items-center gap-2 opacity-30 grayscale transition-all hover:opacity-80 hover:grayscale-0 cursor-default">
@@ -190,12 +121,5 @@ const LoginScreen: React.FC = () => {
     </div>
   );
 };
-
-// Internal Helper Icon
-const CheckCircle2 = ({ size, className }: { size: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-  </svg>
-);
 
 export default LoginScreen;

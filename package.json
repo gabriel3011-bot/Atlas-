@@ -14,19 +14,7 @@
     "recharts": "2.12.0",
     "lucide-react": "0.330.0",
     "@supabase/supabase-js": "2.39.7",
-    "@hello-pangea/dnd": "16.6.0",
-    "./App": "latest",
-    "./components/Sidebar": "latest",
-    "./components/KanbanBoard": "latest",
-    "./components/FinanceDashboard": "latest",
-    "./components/EventsCalendar": "latest",
-    "./components/MarketingGrid": "latest",
-    "./components/LegalDocs": "latest",
-    "./components/MembersTab": "latest",
-    "./components/VotingTab": "latest",
-    "./components/SecretClubGame2048": "latest",
-    "./components/FeedbackWidget": "latest",
-    "./supabaseClient": "latest"
+    "@hello-pangea/dnd": "16.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
