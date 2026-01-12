@@ -1,9 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import Sidebar from './components/Sidebar';
+import FeedbackWidget from './components/FeedbackWidget';
+import LoginScreen from './components/LoginScreen';
 import { View } from './types';
 
-// Importação DIRETA para evitar erros de "Chunk Loading" no GitHub/Deploy
+// Importações diretas de componentes
 import KanbanBoard from './components/KanbanBoard';
 import FinanceDashboard from './components/FinanceDashboard';
 import EventsCalendar from './components/EventsCalendar';
@@ -20,15 +23,29 @@ import {
   Menu 
 } from 'lucide-react';
 
-const MOCK_USER = {
-  name: 'PRESIDENTE',
-  email: 'comissao@atlas.club'
-};
-
 const App: React.FC = () => {
+  const [session, setSession] = useState<any>(null);
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [activeGame, setActiveGame] = useState<'termo' | '2048'>('termo');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    // Busca sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Escuta mudanças na autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!session) {
+    return <LoginScreen />;
+  }
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -47,7 +64,6 @@ const App: React.FC = () => {
               <p className="text-gray-500 font-light">Desafios táticos para a elite Atlas.</p>
             </header>
 
-            {/* Sub-Tabs Secret Club */}
             <div className="flex border-b border-white/5 space-x-10 mb-10">
               <button 
                 onClick={() => setActiveGame('termo')}
@@ -81,7 +97,7 @@ const App: React.FC = () => {
         setCurrentView={setCurrentView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        userName={MOCK_USER.name}
+        userName={session.user.email?.split('@')[0].toUpperCase()}
       />
       
       {isSidebarOpen && (
@@ -91,23 +107,35 @@ const App: React.FC = () => {
         />
       )}
 
-      <main className="flex-1 lg:ml-64 overflow-y-auto overflow-x-hidden bg-night-gradient flex flex-col h-full relative">
-        <header className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-white/5 bg-city-black/95 backdrop-blur-xl sticky top-0 z-30 shadow-xl">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
+      <main className={`flex-1 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'} overflow-y-auto overflow-x-hidden bg-night-gradient flex flex-col h-full relative transition-all duration-500`}>
+        <header className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-city-black/95 backdrop-blur-xl sticky top-0 z-30 shadow-xl">
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5"
+          >
             <Menu size={24} />
           </button>
+          
           <div className="flex items-center gap-2">
             <span className="font-serif text-xl italic text-white tracking-tighter uppercase font-bold">Atlas</span>
             <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
-            <span className="text-[9px] font-black text-copper-light uppercase tracking-widest">2026</span>
+            <span className="text-[9px] font-black text-copper-light uppercase tracking-widest">Gestão 2026</span>
           </div>
-          <div className="w-10"></div>
+
+          <div className="hidden md:block">
+            <div className="flex items-center gap-3 px-4 py-2 bg-white/[0.02] border border-white/5 rounded-full">
+               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sincronizado</span>
+            </div>
+          </div>
         </header>
 
         <div className="flex-1 w-full px-6 md:px-16 py-12 max-w-[1500px] mx-auto">
           {renderCurrentView()}
         </div>
       </main>
+
+      <FeedbackWidget currentView={currentView} userEmail={session.user.email} />
     </div>
   );
 };
