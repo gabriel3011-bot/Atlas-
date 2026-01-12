@@ -117,7 +117,6 @@
     const senha = document.getElementById("senha").value;
     const erro = document.getElementById("erro");
 
-    if (email === EMAIL_CORRETO && senha === SENHA_CORRETA) {
       document.getElementById("login-screen").style.display = "none";
       document.getElementById("app-root").style.display = "block";
 
@@ -125,9 +124,6 @@
       script.type = "module";
       script.src = "/main.js";
       document.body.appendChild(script);
-    } else {
-      erro.innerText = "E-mail ou senha inválidos";
-    }
   }
 </script>
 
