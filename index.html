@@ -1,128 +1,104 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atlas | Gestão da Comissão</title>
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            serif: ['Playfair Display', 'serif'],
-          },
-          colors: {
-            copper: {
-              DEFAULT: '#C5836A',
-              dark: '#8C5243'
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas | Gestão Comissão</title>
+    <!-- Google Fonts: Playfair Display (Serif) & Inter (Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Playfair Display', 'serif'],
             },
-            city: {
-              black: '#050505',
-              dark: '#121212',
-              panel: '#18181b',
-              border: '#27272a'
+            colors: {
+              copper: {
+                light: '#EBC0A0',
+                DEFAULT: '#C5836A',
+                dark: '#8C5243',
+                metallic: '#B87333',
+              },
+              city: {
+                black: '#050505', 
+                dark: '#121212', 
+                panel: '#18181b', 
+                border: '#27272a' 
+              }
+            },
+            backgroundImage: {
+              'copper-gradient': 'linear-gradient(135deg, #dfa67b 0%, #ac6356 100%)',
+              'night-gradient': 'linear-gradient(to bottom, #050505, #121212)',
             }
           }
         }
       }
-    }
-  </script>
-
-  <style>
-    body {
-      margin: 0;
-      background: linear-gradient(to bottom, #050505, #121212);
-    }
-  </style>
+    </script>
+    <style>
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #27272a;
+        border-radius: 10px;
+        transition: background 0.3s ease;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #C5836A;
+      }
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #27272a transparent;
+      }
+      ::-webkit-scrollbar {
+        width: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #050505;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #18181b;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #C5836A;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
+    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+  }
+}
+</script>
 </head>
-
-<body class="text-gray-300 font-sans">
-
-  <!-- NAVBAR -->
-  <nav class="flex items-center justify-between px-8 py-4 border-b border-city-border bg-city-black">
-    <div>
-      <h1 class="text-2xl font-serif text-copper-DEFAULT">ATLAS</h1>
-      <p class="text-xs tracking-widest text-gray-400">
-        COMISSÃO DE FORMATURA
-      </p>
-    </div>
-
-    <!-- ABAS -->
-    <ul class="flex flex-wrap gap-5 text-sm max-w-[70%] justify-end">
-      <li class="text-copper-DEFAULT font-medium border-b-2 border-copper-DEFAULT pb-1 cursor-pointer">
-        Dashboard
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Financeiro
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Marketing
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Eventos
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Votações
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Jurídico
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Secret Club
-      </li>
-      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
-        Membros
-      </li>
-    </ul>
-  </nav>
-
-  <!-- CONTEÚDO -->
-  <main class="p-8">
-
-    <!-- Cards -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-
-      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
-        <h2 class="text-sm text-gray-400 mb-2">Saldo em Caixa</h2>
-        <p class="text-3xl text-copper-DEFAULT font-medium">R$ 0,00</p>
-      </div>
-
-      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
-        <h2 class="text-sm text-gray-400 mb-2">Pendências</h2>
-        <p class="text-3xl text-copper-DEFAULT font-medium">0</p>
-      </div>
-
-      <div class="bg-city-panel border border-city-border rounded-2xl p-6">
-        <h2 class="text-sm text-gray-400 mb-2">Eventos Planejados</h2>
-        <p class="text-3xl text-copper-DEFAULT font-medium">0</p>
-      </div>
-
-    </section>
-
-    <!-- Painel -->
-    <section class="bg-city-panel border border-city-border rounded-2xl p-6">
-      <h3 class="text-lg font-serif text-copper-DEFAULT mb-4">
-        Dashboard Geral
-      </h3>
-
-      <p class="text-sm text-gray-400">
-        Área central da comissão.  
-        Use as abas superiores para navegar entre os setores:
-        financeiro, marketing, eventos, votações, jurídico e áreas internas.
-      </p>
-    </section>
-
-  </main>
-
-</body>
+  <body class="bg-city-black text-gray-300 antialiased selection:bg-copper-DEFAULT selection:text-white custom-scrollbar">
+    <div id="root"></div>
+  </body>
 </html>
