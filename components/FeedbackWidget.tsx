@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { MessageSquare, Bug, Lightbulb, Send, X, Loader2, CheckCircle } from 'lucide-react';
 import { View } from '../types';
 
