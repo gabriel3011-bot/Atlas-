@@ -1,12 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import FeedbackWidget from './components/FeedbackWidget';
-import LoginScreen from './components/LoginScreen';
 import { View } from './types';
 
-// Importações diretas de componentes
+// Importações diretas de componentes para garantir performance e evitar erros de chunk
 import KanbanBoard from './components/KanbanBoard';
 import FinanceDashboard from './components/FinanceDashboard';
 import EventsCalendar from './components/EventsCalendar';
@@ -24,29 +22,15 @@ import {
 } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [session, setSession] = useState<any>(null);
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [activeGame, setActiveGame] = useState<'termo' | '2048'>('termo');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    // Busca sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // Escuta mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  46
-    if (!session) {
-    return <LoginScreen />;
-  }
+  
+  // Usuário padrão para exibição na UI já que o autenticador foi removido
+  const MOCK_USER = {
+    name: "COMISSÃO ATLAS",
+    email: "comissao@atlas.club"
+  };
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -98,7 +82,7 @@ const App: React.FC = () => {
         setCurrentView={setCurrentView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        userName={session.user.email?.split('@')[0].toUpperCase()}
+        userName={MOCK_USER.name}
       />
       
       {isSidebarOpen && (
@@ -117,16 +101,19 @@ const App: React.FC = () => {
             <Menu size={24} />
           </button>
           
-          <div className="flex items-center gap-2">
-            <span className="font-serif text-xl italic text-white tracking-tighter uppercase font-bold">Atlas</span>
+          <button 
+            onClick={() => setCurrentView(View.DASHBOARD)}
+            className="flex items-center gap-2 group"
+          >
+            <span className="font-serif text-xl italic text-white tracking-tighter uppercase font-bold group-hover:text-copper-light transition-colors">Atlas</span>
             <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
-            <span className="text-[9px] font-black text-copper-light uppercase tracking-widest">Gestão 2026</span>
-          </div>
+            <span className="text-[9px] font-black text-copper-light uppercase tracking-widest">Sistema Operacional</span>
+          </button>
 
           <div className="hidden md:block">
             <div className="flex items-center gap-3 px-4 py-2 bg-white/[0.02] border border-white/5 rounded-full">
                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sincronizado</span>
+               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Acesso Livre</span>
             </div>
           </div>
         </header>
@@ -136,11 +123,10 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <FeedbackWidget currentView={currentView} userEmail={session.user.email} />
+      {/* Widget de Sugestões e Bugs */}
+      <FeedbackWidget currentView={currentView} userEmail={MOCK_USER.email} />
     </div>
   );
 };
 
 export default App;
-
-// Fix black screen issue

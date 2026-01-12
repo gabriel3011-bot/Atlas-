@@ -6,7 +6,6 @@ import {
   Megaphone, 
   Trophy, 
   X, 
-  LogOut,
   ShieldCheck,
   Calendar,
   FileText,
@@ -60,24 +59,40 @@ const Sidebar: React.FC<SidebarProps> = ({
         <ChevronLeft size={16} />
       </button>
 
-      {/* Brand */}
-      <div className="pt-12 pb-8 px-8 flex flex-col items-center border-b border-white/5 relative">
-        <button onClick={onClose} className="lg:hidden absolute top-6 right-6 p-2 text-gray-600 hover:text-white transition-colors">
+      {/* Brand & Logo Area */}
+      <div className="pt-10 pb-6 px-6 flex flex-col items-center border-b border-white/5 relative">
+        <button onClick={onClose} className="lg:hidden absolute top-4 right-4 p-2 text-gray-600 hover:text-white transition-colors">
           <X size={20} />
         </button>
         
-        <div className="text-center group cursor-default">
-            <h1 className="font-serif text-3xl font-black tracking-tighter leading-none text-white italic">ATLAS</h1>
-            <div className="flex items-center justify-center gap-3 mt-2">
-                <div className="h-[1px] w-4 bg-copper-dark/40"></div>
-                <span className="text-[8px] text-copper-light uppercase tracking-[0.5em] font-black">Elite 2026</span>
-                <div className="h-[1px] w-4 bg-copper-dark/40"></div>
+        <button 
+          onClick={() => handleNavClick(View.DASHBOARD)}
+          className="flex flex-col items-center group transition-all hover:scale-105 active:scale-95"
+        >
+            {/* Logo Skyline Recuperado */}
+            <div className="mb-4">
+                <svg width="120" height="50" viewBox="0 0 180 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="sidebarSkylineGrad" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#8C5243" />
+                            <stop offset="50%" stopColor="#EBC0A0" />
+                            <stop offset="100%" stopColor="#8C5243" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M5 65 V42 H15 V52 H22 V35 H32 V48 H38 V25 H50 V42 H56 V12 H68 V38 H73 V5 H88 V38 H93 V18 H108 V42 H115 V25 H128 V52 H135 V38 H152 V65 H5 Z" fill="url(#sidebarSkylineGrad)" fillOpacity="0.8" />
+                    <rect x="5" y="65" width="160" height="2" fill="#C5836A" />
+                </svg>
             </div>
-        </div>
+            
+            <h1 className="font-serif text-2xl font-black tracking-tighter leading-none text-white italic group-hover:text-copper-light transition-colors">ATLAS</h1>
+            <div className="flex items-center justify-center gap-2 mt-1">
+                <span className="text-[7px] text-gray-600 uppercase tracking-[0.4em] font-black group-hover:text-gray-400 transition-colors">Elite 2026</span>
+            </div>
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-8 px-5 space-y-1.5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 py-6 px-5 space-y-1 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -85,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+              className={`w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                 isActive
                   ? 'bg-white/5 text-white border border-white/5 shadow-xl'
                   : 'text-gray-600 hover:text-copper-light hover:bg-white/[0.02]'
@@ -113,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <p className="text-[10px] font-black text-white tracking-tighter truncate">{userName}</p>
               <div className="flex items-center gap-1">
                 <ShieldCheck size={10} className="text-copper-light" />
-                <span className="text-[7px] text-gray-500 uppercase font-bold tracking-widest">Acesso Vitalício</span>
+                <span className="text-[7px] text-gray-500 uppercase font-bold tracking-widest">Membro Verificado</span>
               </div>
             </div>
         </div>
