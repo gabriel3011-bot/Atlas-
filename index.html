@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas | Gestão Comissão</title>
-    <!-- Google Fonts: Playfair Display (Serif) & Inter (Sans) -->
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -41,64 +40,227 @@
         }
       }
     </script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-      html, body, #root {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #27272a;
-        border-radius: 10px;
-        transition: background 0.3s ease;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #C5836A;
-      }
-      .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: #27272a transparent;
-      }
-      ::-webkit-scrollbar {
-        width: 5px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #050505;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #18181b;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #C5836A;
-      }
+      html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #050505; }
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #C5836A; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
-    "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
-  }
-}
-</script>
-</head>
-  <body class="bg-city-black text-gray-300 antialiased selection:bg-copper-DEFAULT selection:text-white custom-scrollbar">
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.330.0"
+      }
+    }
+    </script>
+  </head>
+  <body class="text-gray-300 antialiased">
     <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { LayoutGrid, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, Plus, History, Clock } from 'lucide-react';
+
+      // --- Componentes ---
+
+      const Sidebar = () => (
+        <div className="w-64 border-r border-city-border bg-city-black flex flex-col h-full">
+          <div className="p-8 pb-4">
+            <div className="flex flex-col items-center mb-8">
+               {/* Logo Simulado */}
+               <div className="text-copper font-serif text-3xl font-bold tracking-widest relative">
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-50 text-4xl">ılılı</div>
+                  ATLAS
+               </div>
+               <div className="text-copper-dark text-[10px] tracking-[0.3em] mt-1">2026</div>
+            </div>
+          </div>
+
+          <nav className="flex-1 px-4 space-y-2">
+            <NavItem icon={<LayoutGrid size={20} />} label="Quadro" active />
+            <NavItem icon={<DollarSign size={20} />} label="Financeiro" />
+            <NavItem icon={<Calendar size={20} />} label="Eventos" />
+            <NavItem icon={<Megaphone size={20} />} label="Marketing" />
+            <NavItem icon={<FileText size={20} />} label="Jurídico" />
+            <NavItem icon={<Users size={20} />} label="Membros" />
+            <NavItem icon={<BarChart3 size={20} />} label="Votações" />
+            <NavItem icon={<Trophy size={20} />} label="Secret Club" />
+          </nav>
+
+          <div className="p-4 mt-auto border-t border-city-border">
+            <div className="flex items-center gap-3 pl-2">
+               <div className="w-10 h-10 rounded-full bg-city-panel border border-copper text-copper flex items-center justify-center font-serif font-bold">
+                  C
+               </div>
+               <div>
+                  <div className="text-sm font-medium text-gray-200">Comandante</div>
+                  <div className="text-xs text-copper-metallic font-bold tracking-wide">ACESSO MASTER</div>
+               </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      const NavItem = ({ icon, label, active }) => (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${active ? 'bg-city-panel border border-city-border text-copper' : 'text-gray-500 hover:text-gray-300 hover:bg-city-dark'}`}>
+          {icon}
+          <span className="font-medium">{label}</span>
+          {active && <div className="ml-auto w-1 h-1 rounded-full bg-copper shadow-[0_0_8px_rgba(197,131,106,0.5)]"></div>}
+        </div>
+      );
+
+      const KanbanColumn = ({ title, count, items }) => (
+        <div className="flex-1 min-w-[300px] bg-city-black flex flex-col">
+          <div className="flex items-center justify-between mb-6 px-1">
+            <h3 className="font-serif text-xl text-gray-200">{title}</h3>
+            <span className="text-xs font-bold border border-city-border px-2 py-1 rounded text-copper-dark">{count} ITENS</span>
+          </div>
+          <div className="flex-1 bg-city-dark/50 rounded-xl border border-city-border/50 p-4 space-y-4">
+            {items.map((item, idx) => (
+              <TaskCard key={idx} {...item} />
+            ))}
+          </div>
+        </div>
+      );
+
+      const TaskCard = ({ tag, tagColor, title, date, priority, priorityColor, avatar }) => (
+        <div className="bg-city-panel border border-city-border rounded-lg p-5 hover:border-copper/50 transition-colors cursor-pointer group shadow-lg shadow-black/40">
+          <span className={`text-[10px] font-bold uppercase tracking-wider py-1 px-2 rounded bg-opacity-20 ${tagColor} text-white inline-block mb-3`}>
+            {tag}
+          </span>
+          <h4 className="font-medium text-lg text-gray-100 mb-6 group-hover:text-copper transition-colors">{title}</h4>
+          
+          <div className="flex items-center justify-between mt-auto">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+               <Calendar size={14} />
+               {date}
+            </div>
+            <div className="flex items-center gap-2">
+               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${priorityColor}`}>
+                  {priority}
+               </span>
+               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-gradient-to-br from-city-border to-black border border-city-border`}>
+                  {avatar}
+               </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      const App = () => {
+        return (
+          <div className="flex h-screen bg-city-black text-gray-300 font-sans selection:bg-copper selection:text-white">
+            <Sidebar />
+            
+            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+              {/* Header */}
+              <header className="h-24 px-8 border-b border-city-border flex items-center justify-between bg-city-black/95 backdrop-blur-sm z-10">
+                <div>
+                  <h1 className="font-serif text-3xl italic text-white mb-1">Quadro Executivo</h1>
+                  <p className="text-sm text-gray-500">Acompanhamento tático das operações Atlas 2026.</p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <button className="px-5 py-2.5 rounded-lg border border-city-border text-gray-400 hover:text-white hover:border-gray-500 flex items-center gap-2 transition-all">
+                     <History size={16} />
+                     <span>Histórico</span>
+                  </button>
+                  <button className="px-6 py-2.5 rounded-lg bg-copper-gradient text-white font-medium shadow-lg shadow-copper/20 hover:shadow-copper/40 transform hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                     <Plus size={18} />
+                     <span>Nova Tarefa</span>
+                  </button>
+                </div>
+              </header>
+
+              {/* Kanban Board */}
+              <div className="flex-1 overflow-x-auto overflow-y-hidden p-8">
+                <div className="flex h-full gap-6 min-w-max">
+                  
+                  {/* Coluna A Fazer */}
+                  <KanbanColumn 
+                    title="A Fazer" 
+                    count="1"
+                    items={[
+                      {
+                        tag: "ALIMENTAÇÃO",
+                        tagColor: "bg-blue-900/50",
+                        title: "Degustação do Buffet",
+                        date: "29 DE SET.",
+                        priority: "CRITICAL",
+                        priorityColor: "border-red-900 text-red-400 bg-red-900/10",
+                        avatar: "C"
+                      }
+                    ]} 
+                  />
+
+                  {/* Coluna Em Andamento */}
+                  <KanbanColumn 
+                    title="Em Andamento" 
+                    count="1"
+                    items={[
+                      {
+                        tag: "DESIGN",
+                        tagColor: "bg-purple-900/50",
+                        title: "Design dos Convites",
+                        date: "04 DE AGO.",
+                        priority: "MEDIUM",
+                        priorityColor: "border-yellow-700 text-yellow-500 bg-yellow-900/10",
+                        avatar: "B"
+                      }
+                    ]} 
+                  />
+
+                  {/* Coluna Revisão */}
+                  <KanbanColumn 
+                    title="Revisão" 
+                    count="1"
+                    items={[
+                      {
+                        tag: "FINANCEIRO",
+                        tagColor: "bg-rose-900/50",
+                        title: "Contatar Patrocinadores",
+                        date: "30 DE NOV.",
+                        priority: "LOW",
+                        priorityColor: "border-green-800 text-green-500 bg-green-900/10",
+                        avatar: "A"
+                      }
+                    ]} 
+                  />
+
+                  {/* Coluna Concluído */}
+                  <KanbanColumn 
+                    title="Concluído" 
+                    count="1"
+                    items={[
+                      {
+                        tag: "JURÍDICO",
+                        tagColor: "bg-pink-900/50",
+                        title: "Contrato do DJ",
+                        date: "14 DE OUT.",
+                        priority: "MEDIUM",
+                        priorityColor: "border-yellow-700 text-yellow-500 bg-yellow-900/10",
+                        avatar: "M"
+                      }
+                    ]} 
+                  />
+
+                </div>
+              </div>
+            </main>
+          </div>
+        );
+      };
+
+      const root = createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
   </body>
 </html>
