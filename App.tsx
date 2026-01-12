@@ -141,3 +141,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+// Fix black screen issue
