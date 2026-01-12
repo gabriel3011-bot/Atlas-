@@ -1,5 +1,4 @@
 
-<!-- Cópia do index.html para lidar com o roteamento estático do GitHub Pages -->
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -20,13 +19,25 @@
         "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
         "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
         "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-        "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+        "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom",
+        "./App": "./App.tsx",
+        "./components/Sidebar": "./components/Sidebar.tsx",
+        "./components/KanbanBoard": "./components/KanbanBoard.tsx",
+        "./components/FinanceDashboard": "./components/FinanceDashboard.tsx",
+        "./components/EventsCalendar": "./components/EventsCalendar.tsx",
+        "./components/MarketingGrid": "./components/MarketingGrid.tsx",
+        "./components/LegalDocs": "./components/LegalDocs.tsx",
+        "./components/MembersTab": "./components/MembersTab.tsx",
+        "./components/VotingTab": "./components/VotingTab.tsx",
+        "./components/SecretClubGame2048": "./components/SecretClubGame2048.tsx",
+        "./components/FeedbackWidget": "./components/FeedbackWidget.tsx",
+        "./supabaseClient": "./supabaseClient.ts"
       }
     }
     </script>
   </head>
-  <body class="bg-city-black text-gray-300">
+  <body class="bg-city-black">
     <div id="root"></div>
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
   </body>
 </html>

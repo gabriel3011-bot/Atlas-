@@ -43,7 +43,7 @@
       }
     </script>
 
-    <!-- Babel para transpilação em tempo real (Necessário para GitHub Pages sem build step) -->
+    <!-- Babel para transpilação em tempo real -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -81,15 +81,27 @@
         "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
         "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
         "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-        "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+        "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom",
+        "./App": "./App.tsx",
+        "./components/Sidebar": "./components/Sidebar.tsx",
+        "./components/KanbanBoard": "./components/KanbanBoard.tsx",
+        "./components/FinanceDashboard": "./components/FinanceDashboard.tsx",
+        "./components/EventsCalendar": "./components/EventsCalendar.tsx",
+        "./components/MarketingGrid": "./components/MarketingGrid.tsx",
+        "./components/LegalDocs": "./components/LegalDocs.tsx",
+        "./components/MembersTab": "./components/MembersTab.tsx",
+        "./components/VotingTab": "./components/VotingTab.tsx",
+        "./components/SecretClubGame2048": "./components/SecretClubGame2048.tsx",
+        "./components/FeedbackWidget": "./components/FeedbackWidget.tsx",
+        "./supabaseClient": "./supabaseClient.ts"
       }
     }
     </script>
   </head>
-  <body class="bg-city-black text-gray-300 antialiased selection:bg-copper-DEFAULT selection:text-white">
+  <body class="bg-city-black text-gray-300 antialiased">
     <div id="root"></div>
     
-    <!-- Carregamento via Babel: Permite que o browser execute o .tsx no GitHub Pages -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <!-- data-presets é crucial para que o Babel saiba o que fazer com o código -->
+    <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
   </body>
 </html>
