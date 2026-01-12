@@ -13,13 +13,11 @@ import LoginScreen from './components/LoginScreen';
 import FeedbackWidget from './components/FeedbackWidget';
 import { View } from './types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Menu } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
@@ -82,36 +80,15 @@ const App: React.FC = () => {
   const displayEmail = session?.user?.email || 'comandante@atlas2026.com';
 
   return (
-    <div className="flex h-screen w-screen bg-city-black font-sans text-gray-200 overflow-hidden relative">
+    <div className="flex h-screen w-screen bg-city-black font-sans text-gray-200 overflow-hidden">
       <Sidebar 
         currentView={currentView} 
-        setCurrentView={setCurrentView}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        setCurrentView={setCurrentView} 
       />
       
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Área de Conteúdo Principal */}
-      <main className="flex-1 lg:ml-64 overflow-y-auto overflow-x-hidden custom-scrollbar bg-night-gradient relative flex flex-col h-full">
-        {/* Mobile Header */}
-        <header className="lg:hidden flex items-center px-6 py-4 border-b border-white/5 bg-city-black/80 backdrop-blur-md sticky top-0 z-30">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <Menu size={24} />
-          </button>
-          <span className="ml-4 font-serif text-lg italic tracking-tight text-white">ATLAS 2026</span>
-        </header>
-
-        <div className="flex-1 w-full px-6 py-8 md:px-12 md:py-10 max-w-[1600px] mx-auto">
+      {/* Área de Conteúdo Principal - Flexbox robusto para evitar cortes */}
+      <main className="flex-1 ml-64 overflow-y-auto overflow-x-hidden custom-scrollbar bg-night-gradient relative">
+        <div className="min-h-full w-full px-6 py-8 md:px-12 md:py-10 max-w-[1600px] mx-auto">
           {renderContent()}
         </div>
       </main>

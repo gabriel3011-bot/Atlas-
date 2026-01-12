@@ -37,7 +37,6 @@ const TILE_STYLES: Record<number, { label: string; container: string; text: stri
 
 const GRID_SIZE = 4;
 const UNDO_LIMIT = 5;
-const SWIPE_THRESHOLD = 50;
 
 const SecretClubGame2048: React.FC = () => {
   const [grid, setGrid] = useState<Grid>(Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0)));
@@ -45,7 +44,6 @@ const SecretClubGame2048: React.FC = () => {
   const [history, setHistory] = useState<GameState[]>([]);
   const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [lastMergedPos, setLastMergedPos] = useState<{r: number, c: number} | null>(null);
-  const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
   
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
@@ -170,7 +168,7 @@ const SecretClubGame2048: React.FC = () => {
           newScore += row[c];
           row.splice(c + 1, 1);
           moved = true;
-          mergedAt = {r, c};
+          mergedAt = {r, c}; // Localização simplificada pós-rotação
         }
       }
       const newRow = row.concat(Array(GRID_SIZE - row.length).fill(0));
@@ -208,6 +206,7 @@ const SecretClubGame2048: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Restringir APENAS para setas
       const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
       if (arrowKeys.includes(e.key)) {
         e.preventDefault();
@@ -225,37 +224,6 @@ const SecretClubGame2048: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [move, handleUndo]);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart) return;
-
-    const dx = e.changedTouches[0].clientX - touchStart.x;
-    const dy = e.changedTouches[0].clientY - touchStart.y;
-    
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (Math.max(absDx, absDy) > SWIPE_THRESHOLD) {
-      // Logic to prevent scroll during play
-      if (absDx > absDy) {
-        move(dx > 0 ? 'RIGHT' : 'LEFT');
-      } else {
-        move(dy > 0 ? 'DOWN' : 'UP');
-      }
-    }
-    setTouchStart(null);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Only prevent default if we're actually playing and touching the grid
-    if (status === 'playing') {
-      e.preventDefault();
-    }
-  };
 
   return (
     <div className="flex flex-col items-center justify-start w-full animate-in fade-in duration-700">
@@ -304,10 +272,7 @@ const SecretClubGame2048: React.FC = () => {
         {/* Jogo */}
         <div className="flex flex-col items-center space-y-4 flex-shrink-0 w-full max-w-[380px]">
           <div 
-            className="relative bg-[#050505] p-3 rounded-[1.8rem] border-[3px] border-[#1a1a1a] shadow-2xl select-none w-full aspect-square touch-none"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchMove}
+            className="relative bg-[#050505] p-3 rounded-[1.8rem] border-[3px] border-[#1a1a1a] shadow-2xl select-none w-full aspect-square"
           >
             <div className="grid grid-cols-4 gap-2 bg-[#0a0a0a] rounded-[1.4rem] p-2 h-full w-full">
               {grid.map((row, r) => row.map((cell, c) => {
@@ -402,7 +367,7 @@ const SecretClubGame2048: React.FC = () => {
           </div>
           
           <p className="text-[9px] text-gray-600 uppercase tracking-widest font-medium italic animate-pulse">
-            Use as setas ou deslize para mover
+            Use as setas do teclado para mover
           </p>
         </div>
 
