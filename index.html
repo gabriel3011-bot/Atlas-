@@ -48,21 +48,45 @@
 
 <body class="text-gray-300 font-sans">
 
-  <!-- HEADER -->
-  <header class="flex items-center justify-between px-8 py-5 border-b border-city-border">
+  <!-- NAVBAR -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-city-border bg-city-black">
     <div>
       <h1 class="text-2xl font-serif text-copper-DEFAULT">ATLAS</h1>
       <p class="text-xs tracking-widest text-gray-400">
-        GESTÃO DA COMISSÃO
+        COMISSÃO DE FORMATURA
       </p>
     </div>
 
-    <span class="text-sm text-gray-500">
-      Comissão de Formatura 2026
-    </span>
-  </header>
+    <!-- ABAS -->
+    <ul class="flex flex-wrap gap-5 text-sm max-w-[70%] justify-end">
+      <li class="text-copper-DEFAULT font-medium border-b-2 border-copper-DEFAULT pb-1 cursor-pointer">
+        Dashboard
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Financeiro
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Marketing
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Eventos
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Votações
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Jurídico
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Secret Club
+      </li>
+      <li class="text-gray-400 hover:text-copper-DEFAULT cursor-pointer">
+        Membros
+      </li>
+    </ul>
+  </nav>
 
-  <!-- MAIN -->
+  <!-- CONTEÚDO -->
   <main class="p-8">
 
     <!-- Cards -->
@@ -74,7 +98,7 @@
       </div>
 
       <div class="bg-city-panel border border-city-border rounded-2xl p-6">
-        <h2 class="text-sm text-gray-400 mb-2">Pagamentos Pendentes</h2>
+        <h2 class="text-sm text-gray-400 mb-2">Pendências</h2>
         <p class="text-3xl text-copper-DEFAULT font-medium">0</p>
       </div>
 
@@ -85,22 +109,17 @@
 
     </section>
 
-    <!-- Conteúdo principal -->
+    <!-- Painel -->
     <section class="bg-city-panel border border-city-border rounded-2xl p-6">
-
       <h3 class="text-lg font-serif text-copper-DEFAULT mb-4">
-        Painel Geral
+        Dashboard Geral
       </h3>
 
       <p class="text-sm text-gray-400">
-        Este é o painel central da comissão de formatura.  
-        Aqui vocês podem acompanhar o financeiro, eventos, decisões e organização geral.
+        Área central da comissão.  
+        Use as abas superiores para navegar entre os setores:
+        financeiro, marketing, eventos, votações, jurídico e áreas internas.
       </p>
-
-      <div class="mt-6 text-sm text-gray-500">
-        🔒 Acesso interno da comissão
-      </div>
-
     </section>
 
   </main>
