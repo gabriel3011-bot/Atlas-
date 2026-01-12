@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { AppEvent } from '../types';
 import { 
   MapPin, Clock, Calendar as CalendarIcon, Plus, X, 
