@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Transaction } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
