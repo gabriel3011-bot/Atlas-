@@ -1,104 +1,135 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Atlas | Gestão Comissão</title>
-    <!-- Google Fonts: Playfair Display (Serif) & Inter (Sans) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'],
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas | Gestão Comissão</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+          },
+          colors: {
+            copper: {
+              light: '#EBC0A0',
+              DEFAULT: '#C5836A',
+              dark: '#8C5243',
+              metallic: '#B87333',
             },
-            colors: {
-              copper: {
-                light: '#EBC0A0',
-                DEFAULT: '#C5836A',
-                dark: '#8C5243',
-                metallic: '#B87333',
-              },
-              city: {
-                black: '#050505', 
-                dark: '#121212', 
-                panel: '#18181b', 
-                border: '#27272a' 
-              }
-            },
-            backgroundImage: {
-              'copper-gradient': 'linear-gradient(135deg, #dfa67b 0%, #ac6356 100%)',
-              'night-gradient': 'linear-gradient(to bottom, #050505, #121212)',
+            city: {
+              black: '#050505',
+              dark: '#121212',
+              panel: '#18181b',
+              border: '#27272a'
             }
+          },
+          backgroundImage: {
+            'copper-gradient': 'linear-gradient(135deg, #dfa67b 0%, #ac6356 100%)',
+            'night-gradient': 'linear-gradient(to bottom, #050505, #121212)',
           }
         }
       }
-    </script>
-    <style>
-      html, body, #root {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #27272a;
-        border-radius: 10px;
-        transition: background 0.3s ease;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #C5836A;
-      }
-      .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: #27272a transparent;
-      }
-      ::-webkit-scrollbar {
-        width: 5px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #050505;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #18181b;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #C5836A;
-      }
-    </style>
+    }
+  </script>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+
+  <!-- IMPORTMAP (mantido) -->
   <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
-    "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react/": "https://esm.sh/react@18.2.0/",
+      "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+      "react-dom": "https://esm.sh/react-dom@18.2.0",
+      "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
+      "lucide-react": "https://esm.sh/lucide-react@0.330.0?external=react",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
+      "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+    }
   }
-}
-</script>
+  </script>
 </head>
-  <body class="bg-city-black text-gray-300 antialiased selection:bg-copper-DEFAULT selection:text-white custom-scrollbar">
-    <div id="root"></div>
-  </body>
+
+<body class="bg-city-black text-gray-300 antialiased">
+
+<!-- LOGIN -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center bg-night-gradient">
+  <div class="w-full max-w-sm bg-city-panel rounded-2xl border border-city-border p-8 shadow-xl">
+
+    <div class="text-center mb-6">
+      <h1 class="font-serif text-3xl text-white tracking-wide">ATLAS</h1>
+      <p class="text-xs tracking-widest text-copper-DEFAULT mt-1">ACESSO COMISSÕES</p>
+    </div>
+
+    <div class="space-y-4">
+      <input id="email" type="email" placeholder="E-mail"
+        class="w-full px-4 py-3 bg-city-dark border border-city-border rounded-lg focus:outline-none focus:ring-1 focus:ring-copper-DEFAULT">
+
+      <input id="senha" type="password" placeholder="Senha"
+        class="w-full px-4 py-3 bg-city-dark border border-city-border rounded-lg focus:outline-none focus:ring-1 focus:ring-copper-DEFAULT">
+
+      <button onclick="login()"
+        class="w-full py-3 rounded-lg font-medium text-city-black bg-copper-gradient hover:opacity-90 transition">
+        ENTRAR NO SISTEMA →
+      </button>
+
+      <p id="erro" class="text-sm text-red-500 text-center"></p>
+    </div>
+
+    <p class="text-[10px] text-center text-gray-500 mt-6">
+      SINCRONIZAÇÃO SEGURA ATLAS
+    </p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-root" style="display:none;">
+  <div id="root"></div>
+</div>
+
+<script>
+  const EMAIL_CORRETO = "comissao@formatura.com";
+  const SENHA_CORRETA = "atlas2026";
+
+  function login() {
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+    const erro = document.getElementById("erro");
+
+    if (email === EMAIL_CORRETO && senha === SENHA_CORRETA) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-root").style.display = "block";
+
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src = "/main.js";
+      document.body.appendChild(script);
+    } else {
+      erro.innerText = "E-mail ou senha inválidos";
+    }
+  }
+</script>
+
+</body>
 </html>
