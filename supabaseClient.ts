@@ -12,8 +12,8 @@ const getSafeEnv = (key: string): string => {
   }
 };
 
-const supabaseUrl = getSafeEnv('SUPABASE_URL');
-const supabaseAnonKey = getSafeEnv('SUPABASE_ANON_KEY');
+const supabaseUrl1 = 'https://bblmehkibwzzhsfuuqjw.supabase.co';
+const supabaseAnonKey = 'sb_publishable_fppRnKlij9GuYq0k_pRGYw_3ImzJ0OA';
 
 // Fallback para URLs seguras que não quebram o construtor do Supabase
 const finalUrl = supabaseUrl.startsWith('http') ? supabaseUrl : 'https://placeholder.supabase.co';
