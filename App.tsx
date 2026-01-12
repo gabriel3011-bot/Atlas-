@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import KanbanBoard from './components/KanbanBoard';
@@ -13,23 +12,20 @@ import LoginScreen from './components/LoginScreen';
 import FeedbackWidget from './components/FeedbackWidget';
 import { View } from './types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Menu } from 'lucide-react';
 
 const App: React.FC = () => {
+  // Estado que controla qual tela está visível
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Verificação de Autenticação (Supabase)
   useEffect(() => {
     if (isSupabaseConfigured()) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
         setAuthLoading(false);
-      }).catch(err => {
-        console.warn("Falha ao conectar ao Supabase Auth, entrando em modo demo.");
-        setAuthLoading(false);
-      });
+      }).catch(() => setAuthLoading(false));
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
@@ -41,86 +37,59 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Função que decide qual componente mostrar no meio da tela
   const renderContent = () => {
     switch (currentView) {
-      case View.DASHBOARD:
-        return <KanbanBoard />;
-      case View.FINANCE:
-        return <FinanceDashboard />;
-      case View.EVENTS:
-        return <EventsCalendar />;
-      case View.MARKETING:
-        return <MarketingGrid />;
-      case View.LEGAL:
-        return <LegalDocs />;
-      case View.MEMBERS:
-        return <MembersTab />;
-      case View.VOTING:
-        return <VotingTab />;
-      case View.GAME:
-        return <SecretClubGame2048 />;
-      default:
-        return <KanbanBoard />;
+      case View.DASHBOARD: return <KanbanBoard />;
+      case View.FINANCE: return <FinanceDashboard />;
+      case View.EVENTS: return <EventsCalendar />;
+      case View.MARKETING: return <MarketingGrid />;
+      case View.LEGAL: return <LegalDocs />;
+      case View.MEMBERS: return <MembersTab />;
+      case View.VOTING: return <VotingTab />;
+      case View.GAME: return <SecretClubGame2048 />;
+      default: return <KanbanBoard />;
     }
   };
 
+  // Tela de Carregamento Inicial
   if (authLoading) {
     return (
       <div className="h-screen w-full bg-city-black flex items-center justify-center">
-        <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-white/5 border-t-copper-DEFAULT rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(197,131,106,0.2)]"></div>
-            <span className="text-gray-500 font-serif italic animate-pulse tracking-widest uppercase text-[10px]">Sincronizando Atlas...</span>
+        <div className="flex flex-col items-center animate-pulse">
+            <div className="w-12 h-12 border-4 border-white/5 border-t-copper-DEFAULT rounded-full animate-spin mb-4"></div>
+            <span className="text-copper-light font-serif italic text-sm tracking-widest">ATLAS 2026</span>
         </div>
       </div>
     );
   }
 
+  // Tela de Login (Se configurado Supabase e não logado)
   if (isSupabaseConfigured() && !session) {
     return <LoginScreen />;
   }
 
-  const displayEmail = session?.user?.email || 'comandante@atlas2026.com';
+  const userEmail = session?.user?.email || 'comandante@atlas.com';
 
   return (
     <div className="flex h-screen w-screen bg-city-black font-sans text-gray-200 overflow-hidden relative">
+      {/* SIDEBAR: Passamos 'setCurrentView' para que os botões funcionem.
+         O z-index-50 garante que ela fique acima de qualquer conteúdo decorativo.
+      */}
       <Sidebar 
         currentView={currentView} 
-        setCurrentView={setCurrentView}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        setCurrentView={setCurrentView} 
       />
       
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Área de Conteúdo Principal */}
-      <main className="flex-1 lg:ml-64 overflow-y-auto overflow-x-hidden custom-scrollbar bg-night-gradient relative flex flex-col h-full">
-        {/* Mobile Header */}
-        <header className="lg:hidden flex items-center px-6 py-4 border-b border-white/5 bg-city-black/80 backdrop-blur-md sticky top-0 z-30">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <Menu size={24} />
-          </button>
-          <span className="ml-4 font-serif text-lg italic tracking-tight text-white">ATLAS 2026</span>
-        </header>
-
-        <div className="flex-1 w-full px-6 py-8 md:px-12 md:py-10 max-w-[1600px] mx-auto">
+      {/* ÁREA PRINCIPAL: ml-64 empurra o conteúdo para direita para não ficar embaixo da Sidebar */}
+      <main className="flex-1 ml-64 h-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-night-gradient relative z-0">
+        <div className="min-h-full w-full px-8 py-10 max-w-[1600px] mx-auto">
           {renderContent()}
         </div>
       </main>
 
-      {/* Widget de Suporte/Feedback */}
-      <FeedbackWidget 
-        currentView={currentView} 
-        userEmail={displayEmail} 
-      />
+      {/* Widget Flutuante */}
+      <FeedbackWidget currentView={currentView} userEmail={userEmail} />
     </div>
   );
 };
