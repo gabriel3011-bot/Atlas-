@@ -29,10 +29,8 @@ const MembersTab: React.FC = () => {
       const { data } = await supabase.from('committee_members').select('*').order('id', { ascending: false });
       if (data) setMembers(data);
     } else {
-      setMembers([
-        { id: 1, name: 'Ana Silva', role: 'Presidente', phone: '5511999999999', photo_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80', cpf: '123.456.789-00', address: 'Rua das Flores, 123' },
-        { id: 2, name: 'Carlos Oliveira', role: 'Tesoureiro', phone: '5511988888888', photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', cpf: '234.567.890-11', address: 'Av. Paulista, 1000' },
-      ]);
+      // Mock data removido
+      setMembers([]);
     }
   };
 
@@ -145,6 +143,12 @@ const MembersTab: React.FC = () => {
             </button>
           </div>
         ))}
+        {members.length === 0 && (
+            <div className="col-span-full py-20 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+                <User size={48} className="text-gray-700 mb-4" />
+                <p className="text-gray-500 font-serif italic text-lg">Nenhum membro cadastrado.</p>
+            </div>
+        )}
       </div>
 
       {/* Modal Adicionar Membro */}

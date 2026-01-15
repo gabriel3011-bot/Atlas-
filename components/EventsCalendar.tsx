@@ -45,13 +45,8 @@ const EventsCalendar: React.FC = () => {
         if (error) throw error;
         if (data) setEvents(data);
       } else {
-        // Mock data se não houver Supabase
-        const mock: AppEvent[] = [
-          { id: 1, title: 'Gala de Inverno', event_date: '2025-12-20T22:00:00', location: 'Hotel Unique', capacity: 500, category: 'Festa', description: 'O evento principal do ano.', status: 'Confirmado' },
-          { id: 2, title: 'Vistoria Técnica', event_date: '2023-05-10T14:00:00', location: 'Espaço JK', capacity: 20, category: 'Vistoria', description: 'Checagem de som e luz.', status: 'Realizado' },
-          { id: 3, title: 'Reunião de Orçamento', event_date: '2025-06-15T19:00:00', location: 'Sede IBMEC', capacity: 30, category: 'Reunião', description: 'Definição das próximas taxas.', status: 'Pendente' },
-        ];
-        setEvents(mock);
+        // Mock data removido conforme solicitado: inicia vazio se não houver backend
+        setEvents([]);
       }
     } catch (err) {
       console.error("Erro ao buscar eventos:", err);
@@ -244,9 +239,9 @@ const EventsCalendar: React.FC = () => {
       ) : (
         <div className="flex-1 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center py-40 bg-white/[0.01]">
           <History size={60} className="text-gray-800 mb-6" />
-          <h3 className="text-2xl font-serif text-gray-600 italic">Nenhum registro encontrado</h3>
+          <h3 className="text-2xl font-serif text-gray-600 italic">Nenhum evento registrado</h3>
           <p className="text-gray-700 max-w-xs text-center mt-2">
-            A agenda está livre por enquanto ou não há histórico disponível para este filtro.
+            A agenda está livre por enquanto. Clique em "Novo Evento" para começar.
           </p>
         </div>
       )}

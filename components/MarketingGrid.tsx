@@ -15,75 +15,44 @@ import {
   X,
   Image as ImageIcon,
   Clock,
-  View as ViewIcon
+  Video
 } from 'lucide-react';
-import { MarketingPost, MarketingStatus } from '../types';
+import { MarketingPost } from '../types';
 
+// Tipagem local garantida para evitar erros de importação
 type MarketingViewMode = 'calendar' | 'feed';
 
 const MarketingGrid: React.FC = () => {
   const [activeView, setActiveView] = useState<MarketingViewMode>('calendar');
-  const [posts, setPosts] = useState<MarketingPost[]>([
-    { 
-      id: 1, 
-      image_url: 'https://images.unsplash.com/photo-1519671482502-9759101d4561?auto=format&fit=crop&w=800&q=80', 
-      caption: 'A contagem regressiva começou. Atlas 2026 está chegando para mudar tudo. 🎓✨', 
-      scheduled_date: '2024-03-05', 
-      platform: 'Instagram', 
-      status: 'posted', 
-      likes_count: 1240, 
-      comments_count: 56 
-    },
-    { 
-      id: 2, 
-      image_url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80', 
-      caption: 'Bastidores da nossa última reunião técnica. O nível de entrega será sem precedentes.', 
-      scheduled_date: '2024-03-12', 
-      platform: 'TikTok', 
-      status: 'posted', 
-      likes_count: 890, 
-      comments_count: 32 
-    },
-    { 
-      id: 3, 
-      image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', 
-      caption: 'Moodboard: Minimalismo e Sofisticação. Escolha o seu detalhe favorito nos comentários.', 
-      scheduled_date: '2024-03-20', 
-      platform: 'Instagram', 
-      status: 'scheduled', 
-      likes_count: 0, 
-      comments_count: 0 
-    },
-    { 
-      id: 4, 
-      image_url: 'https://images.unsplash.com/photo-1496337589254-7e19d01cec44?auto=format&fit=crop&w=800&q=80', 
-      caption: 'Preparados para o anúncio do Line-up? Ative as notificações.', 
-      scheduled_date: '2024-03-25', 
-      platform: 'Instagram', 
-      status: 'scheduled', 
-      likes_count: 0, 
-      comments_count: 0 
-    },
-  ]);
+  
+  // Dados iniciais vazios (sem mock data fictício)
+  const [posts, setPosts] = useState<MarketingPost[]>([]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPostData, setNewPostData] = useState({
     caption: '',
     platform: 'Instagram',
     scheduled_date: new Date().toISOString().split('T')[0],
-    image_url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80'
+    image_url: ''
   });
 
+  // Lógica do Calendário blindada contra objetos nulos
   const calendarDays = useMemo(() => {
     const today = new Date();
     const year = today.getFullYear();
-    const month = today.getMonth();
+    const month = today.getMonth(); // 0-indexed
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     
-    const days = [];
+    // Array simples para evitar complexidade de objetos
+    const days: ({ day: number; date: string } | null)[] = [];
+    
+    // Ajuste para começar na Segunda-feira (padrão BR)
     const startPadding = (firstDay.getDay() + 6) % 7;
-    for (let i = 0; i < startPadding; i++) days.push(null);
+    
+    for (let i = 0; i < startPadding; i++) {
+        days.push(null);
+    }
     
     for (let i = 1; i <= lastDay.getDate(); i++) {
       const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
@@ -96,10 +65,10 @@ const MarketingGrid: React.FC = () => {
     e.preventDefault();
     const post: MarketingPost = {
       id: Date.now(),
-      image_url: newPostData.image_url,
+      image_url: '',
       caption: newPostData.caption,
       scheduled_date: newPostData.scheduled_date,
-      platform: newPostData.platform,
+      platform: newPostData.platform as 'Instagram' | 'TikTok',
       status: 'scheduled',
       likes_count: 0,
       comments_count: 0
@@ -110,11 +79,32 @@ const MarketingGrid: React.FC = () => {
       caption: '',
       platform: 'Instagram',
       scheduled_date: new Date().toISOString().split('T')[0],
-      image_url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80'
+      image_url: ''
     });
   };
 
-  const getPostsForDate = (date: string) => posts.filter(p => p.scheduled_date === date);
+  const getPostsForDate = (date: string) => {
+      if (!date) return [];
+      return posts.filter(p => p.scheduled_date === date);
+  };
+
+  // Componente visual para substituir imagens (evita erros de carregamento)
+  const PlaceholderImage = ({ platform }: { platform: string }) => (
+    <div className={`w-full h-full flex flex-col items-center justify-center p-6 transition-colors ${
+        platform === 'Instagram' 
+        ? 'bg-gradient-to-br from-purple-900/40 via-pink-900/20 to-orange-900/40' 
+        : 'bg-gradient-to-br from-gray-800 via-gray-900 to-black'
+    }`}>
+        {platform === 'Instagram' ? (
+            <Instagram size={48} className="text-white/20 mb-2" />
+        ) : (
+            <Video size={48} className="text-white/20 mb-2" />
+        )}
+        <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
+            Mídia {platform}
+        </span>
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-700">
@@ -153,7 +143,7 @@ const MarketingGrid: React.FC = () => {
         </button>
       </div>
 
-      {/* Conditional Rendering based on activeView */}
+      {/* Conditional Rendering */}
       <div className="flex-1">
         {activeView === 'calendar' ? (
           /* STRATEGIC CALENDAR VIEW */
@@ -161,7 +151,7 @@ const MarketingGrid: React.FC = () => {
             <div className="min-w-[800px]">
               {/* Weekday Labels */}
               <div className="grid grid-cols-7 mb-6">
-                {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'].map(d => (
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => (
                   <div key={d} className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 py-4">
                     {d}
                   </div>
@@ -179,7 +169,7 @@ const MarketingGrid: React.FC = () => {
                         : 'bg-black/20 border-white/5 hover:border-white/10 hover:bg-black/40 group'
                     }`}
                   >
-                    {dayObj && (
+                    {dayObj ? (
                       <>
                         <div className="flex justify-between items-center mb-1">
                           <span className={`text-xs font-bold ${
@@ -204,24 +194,24 @@ const MarketingGrid: React.FC = () => {
                               <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${post.platform === 'Instagram' ? 'bg-pink-500' : 'bg-white'}`}></div>
                               {post.platform === 'Instagram' ? <Instagram size={10} className="text-pink-500" /> : <Smartphone size={10} className="text-white" />}
                               <span className="truncate">{post.caption}</span>
-                              {post.status === 'posted' && <Check size={8} className="text-green-500 ml-auto shrink-0" />}
                             </div>
                           ))}
                         </div>
 
-                        {getPostsForDate(dayObj.date).length === 0 && (
-                          <button 
-                            onClick={() => {
-                              setNewPostData(prev => ({ ...prev, scheduled_date: dayObj.date }));
-                              setIsAddModalOpen(true);
-                            }}
-                            className="mt-auto opacity-0 group-hover:opacity-100 p-2 text-gray-700 hover:text-copper-light transition-all flex items-center gap-1"
-                          >
-                            <Plus size={12} />
-                            <span className="text-[8px] font-bold uppercase tracking-widest">Slot</span>
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => {
+                            setNewPostData(prev => ({ ...prev, scheduled_date: dayObj.date }));
+                            setIsAddModalOpen(true);
+                          }}
+                          className="mt-auto opacity-0 group-hover:opacity-100 p-2 text-gray-700 hover:text-copper-light transition-all flex items-center gap-1"
+                        >
+                          <Plus size={12} />
+                          <span className="text-[8px] font-bold uppercase tracking-widest">Slot</span>
+                        </button>
                       </>
+                    ) : (
+                        /* Renderização segura para dias vazios */
+                        <div className="w-full h-full" />
                     )}
                   </div>
                 ))}
@@ -229,67 +219,73 @@ const MarketingGrid: React.FC = () => {
             </div>
           </div>
         ) : (
-          /* SOCIAL FEED VIEW */
+          /* SOCIAL FEED VIEW - SAFE MODE */
           <div className="max-w-xl mx-auto space-y-8 pb-24">
-            {posts.sort((a,b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime()).map((post) => (
-              <div key={post.id} className="bg-zinc-900/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4">
-                {/* Post Header */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-copper-dark via-copper-light to-white p-[1.5px]">
-                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold">A</div>
+            {posts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+                    <div className="p-4 bg-white/5 rounded-full mb-4">
+                        <LayoutGrid size={32} className="text-gray-600" />
                     </div>
-                    <div>
-                      <h4 className="text-[11px] font-black uppercase tracking-widest text-white">atlas.2026</h4>
-                      <p className="text-[9px] text-gray-500 flex items-center gap-1 font-bold">
-                        {post.platform === 'Instagram' ? <Instagram size={10} /> : <Smartphone size={10} />}
-                        {new Date(post.scheduled_date).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
-                  <MoreHorizontal size={20} className="text-gray-600 cursor-pointer hover:text-white transition-colors" />
+                    <p className="text-gray-500 font-serif italic">Nenhuma publicação agendada.</p>
                 </div>
+            ) : (
+                posts.sort((a,b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime()).map((post) => (
+                    <div key={post.id} className="bg-zinc-900/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4">
+                        {/* Post Header */}
+                        <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-copper-dark via-copper-light to-white p-[1.5px]">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold">A</div>
+                            </div>
+                            <div>
+                            <h4 className="text-[11px] font-black uppercase tracking-widest text-white">atlas.2026</h4>
+                            <p className="text-[9px] text-gray-500 flex items-center gap-1 font-bold">
+                                {post.platform === 'Instagram' ? <Instagram size={10} /> : <Smartphone size={10} />}
+                                {/* Proteção contra datas inválidas */}
+                                {post.scheduled_date ? new Date(post.scheduled_date).toLocaleDateString('pt-BR') : 'Data n/a'}
+                            </p>
+                            </div>
+                        </div>
+                        <MoreHorizontal size={20} className="text-gray-600 cursor-pointer hover:text-white transition-colors" />
+                        </div>
 
-                {/* Post Image */}
-                <div className="aspect-square relative group">
-                  <img src={post.image_url} alt="Post Content" className="w-full h-full object-cover" />
-                  {post.status === 'scheduled' && (
-                    <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full flex items-center gap-2">
-                      <Clock size={12} className="text-copper-light" />
-                      <span className="text-[8px] font-black uppercase text-white tracking-widest">Agendado</span>
+                        {/* Post Image Placeholder */}
+                        <div className="aspect-square relative group bg-black">
+                        <PlaceholderImage platform={post.platform} />
+                        
+                        {post.status === 'scheduled' && (
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full flex items-center gap-2">
+                            <Clock size={12} className="text-copper-light" />
+                            <span className="text-[8px] font-black uppercase text-white tracking-widest">Agendado</span>
+                            </div>
+                        )}
+                        </div>
+
+                        {/* Post Actions & Caption */}
+                        <div className="p-5 space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4 text-white">
+                            <Heart size={24} className={post.status === 'posted' ? 'fill-copper-light text-copper-light' : 'hover:text-copper-light transition-colors cursor-pointer'} />
+                            <MessageCircle size={24} className="hover:text-copper-light transition-colors cursor-pointer" />
+                            <Send size={24} className="hover:text-copper-light transition-colors cursor-pointer" />
+                            </div>
+                            <Bookmark size={24} className="text-white hover:text-copper-light transition-colors cursor-pointer" />
+                        </div>
+
+                        <div className="space-y-1">
+                            {post.status === 'posted' && (
+                            <p className="text-[11px] font-bold text-white tracking-wide">{post.likes_count?.toLocaleString()} curtidas</p>
+                            )}
+                            <p className="text-sm text-gray-300 leading-relaxed">
+                            <span className="font-bold text-white mr-2">atlas.2026</span>
+                            {/* Renderização segura de texto */}
+                            {String(post.caption)}
+                            </p>
+                        </div>
+                        </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Post Actions & Caption */}
-                <div className="p-5 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4 text-white">
-                      <Heart size={24} className={post.status === 'posted' ? 'fill-copper-light text-copper-light' : 'hover:text-copper-light transition-colors cursor-pointer'} />
-                      <MessageCircle size={24} className="hover:text-copper-light transition-colors cursor-pointer" />
-                      <Send size={24} className="hover:text-copper-light transition-colors cursor-pointer" />
-                    </div>
-                    <Bookmark size={24} className="text-white hover:text-copper-light transition-colors cursor-pointer" />
-                  </div>
-
-                  <div className="space-y-1">
-                    {post.status === 'posted' && (
-                      <p className="text-[11px] font-bold text-white tracking-wide">{post.likes_count?.toLocaleString()} curtidas</p>
-                    )}
-                    <p className="text-sm text-gray-300 leading-relaxed">
-                      <span className="font-bold text-white mr-2">atlas.2026</span>
-                      {post.caption}
-                    </p>
-                  </div>
-
-                  {post.status === 'posted' && (
-                    <button className="text-[11px] text-gray-600 font-bold uppercase tracking-widest hover:text-gray-400 transition-colors">
-                      Ver todos os {post.comments_count} comentários
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                ))
+            )}
           </div>
         )}
       </div>
