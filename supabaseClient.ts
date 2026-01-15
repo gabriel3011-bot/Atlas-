@@ -1,19 +1,43 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-// NOTE: In a real environment, these are process.env.REACT_APP_SUPABASE_URL etc.
-// For this demo, we check if they exist. If not, the app will fall back to mock data
-// within the components (handled in the service layer pattern).
+// Função auxiliar para acessar variáveis de ambiente de forma segura
+const getEnv = (key: string) => {
+  // Tenta acessar via import.meta.env (Vite)
+  // O optional chaining (?.) previne o erro se .env for undefined
+  // @ts-ignore
+  const viteEnv = import.meta.env?.[key];
+  if (viteEnv) return viteEnv;
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  // Tenta acessar via process.env (Legado/Webpack/Jest)
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env) {
+      // @ts-ignore
+      return process.env[key];
+    }
+  } catch (e) {
+    // Ignora erro de referência
+  }
 
-// To avoid "Error: supabaseUrl is required" when env vars are missing, we pass a placeholder.
-// The app checks isSupabaseConfigured() before making actual requests.
+  return undefined;
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+console.log("Iniciando Supabase...", { 
+  url: supabaseUrl ? "OK (Encontrada)" : "ERRO (Faltando - Modo Offline)",
+  key: supabaseAnonKey ? "OK (Encontrada)" : "ERRO (Faltando - Modo Offline)"
+});
+
+// Cria um cliente seguro. Se as chaves faltarem, ele não trava o site (tela preta),
+// apenas desativa o banco de dados.
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder'
 );
 
 export const isSupabaseConfigured = () => {
-  return !!supabaseUrl && !!supabaseAnonKey;
+  return !!supabaseUrl && !!supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co';
 };
