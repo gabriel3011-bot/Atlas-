@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary'; // Certifique-se que criou este arquivo
-//import './index.css'; // Importante para o Tailwind carregar
+
 
 const rootElement = document.getElementById('root');
 
