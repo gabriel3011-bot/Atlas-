@@ -5,6 +5,12 @@ export type MarketingStatus = 'idea' | 'scheduled' | 'posted';
 export type DocumentStatus = 'signed' | 'pending';
 export type UrgencyLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 
+export type UserRole = 'ADMIN' | 'FINANCE' | 'MARKETING' | 'EVENTS' | 'LEGAL' | 'MEMBER';
+
+export interface ViewProps {
+  isEditable: boolean;
+}
+
 export interface Task {
   id: number;
   title: string;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { RefreshCw, Trophy, Crown, Loader2, Save, User as UserIcon, Delete, CornerDownLeft, Star, HelpCircle } from 'lucide-react';
@@ -166,7 +165,7 @@ const SecretTermoGame: React.FC = () => {
     return status;
   };
 
-  const KeyboardKey = ({ k, special = false, icon }: { k: string, special?: boolean, icon?: React.ReactNode }) => {
+  const KeyboardKey = ({ k, special = false, icon }: { k: string, special?: boolean, icon?: React.ReactNode, key?: React.Key }) => {
     const status = getKeyStatus(k);
     let bgClass = 'bg-[#1a1a1a] border-white/5 text-gray-300 hover:bg-white/10';
     

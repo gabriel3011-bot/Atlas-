@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { Transaction } from '../types';
+import { Transaction, ViewProps } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
   PieChart, Pie, Legend 
@@ -11,7 +11,9 @@ import {
   Calculator, PieChart as PieIcon, ArrowUpRight, ArrowDownRight, Info
 } from 'lucide-react';
 
-const FinanceDashboard: React.FC = () => {
+interface FinanceDashboardProps extends ViewProps {}
+
+const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
   // Simulator State
   const [graduates, setGraduates] = useState(120);
   const [ticketPrice, setTicketPrice] = useState(2500);
@@ -213,6 +215,7 @@ const FinanceDashboard: React.FC = () => {
                    </div>
                    <p className="text-gray-400 font-light max-w-xl">
                      Ajuste as variáveis para prever o impacto financeiro baseado na adesão da turma.
+                     {!isEditable && <span className="text-red-400 block mt-1 text-xs font-bold uppercase tracking-widest">Modo Leitura (Edição bloqueada)</span>}
                    </p>
                 </div>
                 
@@ -246,12 +249,13 @@ const FinanceDashboard: React.FC = () => {
                     </div>
                     <div className="relative pt-2">
                         <input 
+                          disabled={!isEditable}
                           type="range" 
                           min="0" 
                           max="250" 
                           value={graduates} 
                           onChange={(e) => setGraduates(Number(e.target.value))}
-                          className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-copper-DEFAULT hover:accent-copper-light transition-all"
+                          className={`w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer ${isEditable ? 'accent-copper-DEFAULT hover:accent-copper-light' : 'accent-gray-600'} transition-all`}
                         />
                         <div className="flex justify-between mt-3 text-[9px] font-bold text-gray-600 uppercase tracking-widest">
                             <span>0</span>
@@ -268,10 +272,11 @@ const FinanceDashboard: React.FC = () => {
                         <div className="relative group">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
                             <input 
+                              disabled={!isEditable}
                               type="number" 
                               value={ticketPrice} 
                               onChange={(e) => setTicketPrice(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner"
+                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
                             />
                         </div>
                     </div>
@@ -281,10 +286,11 @@ const FinanceDashboard: React.FC = () => {
                         <div className="relative group">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
                             <input 
+                              disabled={!isEditable}
                               type="number" 
                               value={fixedCosts} 
                               onChange={(e) => setFixedCosts(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner"
+                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
                             />
                         </div>
                     </div>
@@ -294,10 +300,11 @@ const FinanceDashboard: React.FC = () => {
                         <div className="relative group">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
                             <input 
+                              disabled={!isEditable}
                               type="number" 
                               value={variableCostPerPerson} 
                               onChange={(e) => setVariableCostPerPerson(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner"
+                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
                             />
                         </div>
                     </div>

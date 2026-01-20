@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { Member } from '../types';
+import { Member, ViewProps } from '../types';
 import { Plus, MessageCircle, X, Check, User, Phone, MapPin, FileText, Camera, Loader2 } from 'lucide-react';
 
-const MembersTab: React.FC = () => {
+interface MembersTabProps extends ViewProps {}
+
+const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -107,12 +109,14 @@ const MembersTab: React.FC = () => {
            <h2 className="font-serif text-3xl text-white mb-2 tracking-tight italic">Comissão IBMEC 2026</h2>
            <p className="text-gray-400 font-light text-sm">Os pilares da organização Atlas.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
-        >
-          <Plus size={20} /> Adicionar Membro
-        </button>
+        {isEditable && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
+          >
+            <Plus size={20} /> Adicionar Membro
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

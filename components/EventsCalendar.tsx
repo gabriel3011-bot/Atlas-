@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { AppEvent } from '../types';
+import { AppEvent, ViewProps } from '../types';
 import { 
   MapPin, Clock, Calendar as CalendarIcon, Plus, X, 
   Users, Trash2, AlertTriangle, Check, Loader2, 
@@ -10,7 +10,9 @@ import {
 
 type SubTab = 'UPCOMING' | 'PAST';
 
-const EventsCalendar: React.FC = () => {
+interface EventsCalendarProps extends ViewProps {}
+
+const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [activeTab, setActiveTab] = useState<SubTab>('UPCOMING');
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +47,6 @@ const EventsCalendar: React.FC = () => {
         if (error) throw error;
         if (data) setEvents(data);
       } else {
-        // Mock data removido conforme solicitado: inicia vazio se não houver backend
         setEvents([]);
       }
     } catch (err) {
@@ -69,6 +70,7 @@ const EventsCalendar: React.FC = () => {
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isEditable) return;
     setIsSubmitting(true);
     try {
       if (isSupabaseConfigured()) {
@@ -93,7 +95,7 @@ const EventsCalendar: React.FC = () => {
   };
 
   const handleDeleteEvent = async () => {
-    if (!eventToDelete) return;
+    if (!eventToDelete || !isEditable) return;
     setIsSubmitting(true);
     try {
       if (isSupabaseConfigured()) {
@@ -125,12 +127,14 @@ const EventsCalendar: React.FC = () => {
           <h2 className="font-serif text-4xl text-white italic tracking-tight mb-2">Eventos & Experiências</h2>
           <p className="text-gray-500 font-light">Gestão do calendário social e institucional da Atlas.</p>
         </div>
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-copper-gradient text-black px-8 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_40px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-2"
-        >
-          <Plus size={20} /> Novo Evento
-        </button>
+        {isEditable && (
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-copper-gradient text-black px-8 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_40px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-2"
+          >
+            <Plus size={20} /> Novo Evento
+          </button>
+        )}
       </div>
 
       {/* Sub-Tabs Navigation */}
@@ -218,15 +222,17 @@ const EventsCalendar: React.FC = () => {
                       </div>
                     </div>
                     
-                    <button 
-                      onClick={() => {
-                        setEventToDelete(event);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="p-2 text-gray-700 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {isEditable && (
+                      <button 
+                        onClick={() => {
+                          setEventToDelete(event);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="p-2 text-gray-700 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

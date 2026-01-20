@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { Poll } from '../types';
+import { Poll, ViewProps } from '../types';
 import { Clock, CheckCircle2, BarChart2, Plus, X, Trash2 } from 'lucide-react';
 
-const VotingTab: React.FC = () => {
+interface VotingTabProps extends ViewProps {}
+
+const VotingTab: React.FC<VotingTabProps> = ({ isEditable }) => {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selections, setSelections] = useState<Record<number, string>>({});
@@ -26,29 +28,7 @@ const VotingTab: React.FC = () => {
       const { data } = await supabase.from('polls').select('*');
       if (data) setPolls(data);
     } else {
-      // Mock Data
-      setPolls([
-        { 
-          id: 1, 
-          title: 'Escolha do Buffet', 
-          description: 'Precisamos decidir entre as três opções finalistas para o jantar de gala.', 
-          deadline: '2024-03-01T23:59:00',
-          options: ['Buffet Royal (R$ 150/pessoa)', 'Gastronomia Prime (R$ 180/pessoa)', 'Sabor & Arte (R$ 140/pessoa)'],
-          user_voted_option: null,
-          results: { 'Buffet Royal (R$ 150/pessoa)': 15, 'Gastronomia Prime (R$ 180/pessoa)': 8, 'Sabor & Arte (R$ 140/pessoa)': 12 },
-          total_votes: 35
-        },
-        { 
-          id: 2, 
-          title: 'Cor da Becas', 
-          description: 'Votação para a cor da faixa na beca oficial da colação.', 
-          deadline: '2024-02-15T18:00:00',
-          options: ['Azul Marinho', 'Preto Clássico', 'Vinho'],
-          user_voted_option: 'Azul Marinho',
-          results: { 'Azul Marinho': 45, 'Preto Clássico': 10, 'Vinho': 5 },
-          total_votes: 60
-        }
-      ]);
+      setPolls([]);
     }
   };
 
@@ -78,6 +58,7 @@ const VotingTab: React.FC = () => {
 
   const handleCreatePoll = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isEditable) return;
     const cleanOptions = newPoll.options.filter(opt => opt.trim() !== '');
     
     if (cleanOptions.length < 2) {
@@ -137,12 +118,14 @@ const VotingTab: React.FC = () => {
            <h2 className="font-serif text-4xl text-white mb-2">Votações & Enquetes</h2>
            <p className="text-gray-400 font-light">Participe das decisões importantes da turma.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
-        >
-          <Plus size={20} /> Nova Votação
-        </button>
+        {isEditable && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
+          >
+            <Plus size={20} /> Nova Votação
+          </button>
+        )}
       </div>
 
       <div className="space-y-8 pb-10">

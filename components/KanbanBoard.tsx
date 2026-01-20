@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { Task, TaskStatus, UrgencyLevel } from '../types';
+import { Task, TaskStatus, UrgencyLevel, ViewProps } from '../types';
 import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle, WifiOff } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-const KanbanBoard: React.FC = () => {
+interface KanbanBoardProps extends ViewProps {}
+
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState<number | null>(null);
@@ -26,15 +28,18 @@ const KanbanBoard: React.FC = () => {
   useEffect(() => {
     fetchTasks();
     
+    // Auto-refresh a cada minuto
     const interval = setInterval(() => {
-        setTasks(prev => [...prev]);
+        if (isSupabaseConfigured()) {
+            fetchTasks(true); // silent refresh
+        }
     }, 60000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const fetchTasks = async () => {
-    setIsLoading(true);
+  const fetchTasks = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setFetchError(null);
     try {
       if (isSupabaseConfigured()) {
@@ -42,40 +47,52 @@ const KanbanBoard: React.FC = () => {
         if (error) throw error;
         if (data) setTasks(data);
       } else {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        if (tasks.length === 0) {
-          const now = new Date();
-          const tenMinsAgo = new Date(now.getTime() - 11 * 60000).toISOString();
-          
-          setTasks([
-            { id: 1, title: 'Reservar Salão de Festas', status: 'DONE', category: 'Logística', assigned_to: 'Alice', urgency: 'High', deadline: '2025-11-01', completed_at: tenMinsAgo },
-            { id: 2, title: 'Design dos Convites', status: 'DOING', category: 'Design', assigned_to: 'Bob', urgency: 'Medium', deadline: '2025-08-05' },
-            { id: 3, title: 'Degustação do Buffet', status: 'TODO', category: 'Alimentação', assigned_to: 'Carlos', urgency: 'Critical', deadline: '2025-09-30' },
-            { id: 4, title: 'Contatar Patrocinadores', status: 'REVIEW', category: 'Financeiro', assigned_to: 'Alice', urgency: 'Low', deadline: '2025-12-01' },
-            { id: 5, title: 'Contrato do DJ', status: 'DONE', category: 'Jurídico', assigned_to: 'Sarah', urgency: 'Medium', deadline: '2025-10-15', completed_at: new Date().toISOString() },
-          ]);
+        // Fallback: Carrega do LocalStorage se não houver backend
+        const localData = localStorage.getItem('atlas_tasks');
+        if (localData) {
+            setTasks(JSON.parse(localData));
         }
       }
     } catch (err: any) {
       console.error("Erro ao carregar tarefas:", err);
-      setFetchError("Falha ao sincronizar com o servidor. Verifique sua conexão.");
+      if (!silent) setFetchError("Falha ao sincronizar. Usando modo offline.");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    const taskData = { ...newTask };
-    const mockTask: Task = { id: Date.now(), ...taskData, created_at: new Date().toISOString() };
-    setTasks((prev) => [...prev, mockTask]);
+    if (!isEditable) return;
+
+    // Prepara payload corrigindo campos vazios para null (Postgres não aceita string vazia em datas)
+    const taskPayload = {
+        ...newTask,
+        deadline: newTask.deadline ? newTask.deadline : null
+    };
+
+    // Optimistic Update (Atualiza a tela antes do banco)
+    const tempId = Date.now();
+    const mockTask: Task = { id: tempId, ...newTask, created_at: new Date().toISOString() };
+    const updatedTasks = [...tasks, mockTask];
+    setTasks(updatedTasks);
 
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('tasks').insert([taskData]);
+        const { data, error } = await supabase.from('tasks').insert([taskPayload]).select();
+        if (error) throw error;
+        
+        // Atualiza com o ID real do banco
+        if (data) {
+            setTasks(prev => prev.map(t => t.id === tempId ? data[0] : t));
+        }
       } catch (err) {
         console.error("Erro ao salvar tarefa remota:", err);
+        alert("Erro ao salvar no banco. Verifique sua conexão.");
       }
+    } else {
+        // Salva no LocalStorage
+        localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
 
     setIsModalOpen(false);
@@ -83,18 +100,26 @@ const KanbanBoard: React.FC = () => {
   };
 
   const handleDeleteTask = async (id: number) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    if (!isEditable) return;
+
+    const updatedTasks = tasks.filter(t => t.id !== id);
+    setTasks(updatedTasks);
     setIsConfirmDeleteOpen(null);
+
     if (isSupabaseConfigured()) {
         try {
             await supabase.from('tasks').delete().eq('id', id);
         } catch (err) {
             console.error("Erro ao deletar tarefa remota:", err);
         }
+    } else {
+        localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
   };
 
   const onDragEnd = async (result: DropResult) => {
+    if (!isEditable) return;
+
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
@@ -103,13 +128,13 @@ const KanbanBoard: React.FC = () => {
     const taskId = Number(draggableId);
     const now = new Date().toISOString();
 
-    setTasks((prevTasks) => 
-        prevTasks.map((t) => 
-            t.id === taskId 
-                ? { ...t, status: newStatus, completed_at: newStatus === 'DONE' ? now : undefined } 
-                : t
-        )
+    // Atualiza estado local
+    const updatedTasks = tasks.map((t) => 
+        t.id === taskId 
+            ? { ...t, status: newStatus, completed_at: newStatus === 'DONE' ? now : undefined } 
+            : t
     );
+    setTasks(updatedTasks);
 
     if (isSupabaseConfigured()) {
         try {
@@ -120,6 +145,8 @@ const KanbanBoard: React.FC = () => {
         } catch (err) {
             console.error("Erro ao atualizar status remoto:", err);
         }
+    } else {
+        localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
   };
 
@@ -196,7 +223,7 @@ const KanbanBoard: React.FC = () => {
                 {showHistory ? 'Voltar' : 'Histórico'}
             </button>
 
-            {!showHistory && (
+            {!showHistory && isEditable && (
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
@@ -213,7 +240,7 @@ const KanbanBoard: React.FC = () => {
                   <WifiOff size={18} />
                   {fetchError}
               </div>
-              <button onClick={fetchTasks} className="text-[10px] uppercase font-bold tracking-widest text-white bg-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/40 transition">Tentar Novamente</button>
+              <button onClick={() => fetchTasks(false)} className="text-[10px] uppercase font-bold tracking-widest text-white bg-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/40 transition">Tentar Novamente</button>
           </div>
       )}
 
@@ -245,12 +272,14 @@ const KanbanBoard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => setIsConfirmDeleteOpen(task.id)}
-                            className="p-3 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
-                        >
-                            <Trash2 size={20} />
-                        </button>
+                        {isEditable && (
+                            <button 
+                                onClick={() => setIsConfirmDeleteOpen(task.id)}
+                                className="p-3 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
                     </div>
                 ))
             )}
@@ -268,7 +297,7 @@ const KanbanBoard: React.FC = () => {
                        </span>
                     </div>
                     
-                    <Droppable droppableId={col.id}>
+                    <Droppable droppableId={col.id} isDropDisabled={!isEditable}>
                       {(provided, snapshot) => (
                           <div 
                               {...provided.droppableProps}
@@ -282,7 +311,7 @@ const KanbanBoard: React.FC = () => {
                               .map((task, index) => {
                                   const urgencyStyles = getUrgencyStyles(task.urgency);
                                   return (
-                                  <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+                                  <Draggable key={task.id} draggableId={task.id.toString()} index={index} isDragDisabled={!isEditable}>
                                       {(provided, snapshot) => (
                                           <div
                                               ref={provided.innerRef}
@@ -290,23 +319,25 @@ const KanbanBoard: React.FC = () => {
                                               {...provided.dragHandleProps}
                                               className={`
                                                   bg-[#121212] p-5 rounded-xl border border-white/5 shadow-lg group relative overflow-hidden transition-all duration-200
-                                                  ${snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 ring-2 ring-copper-DEFAULT/50 z-50 bg-[#18181b] cursor-grabbing' : 'cursor-grab hover:border-white/20'}
+                                                  ${snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 ring-2 ring-copper-DEFAULT/50 z-50 bg-[#18181b] cursor-grabbing' : isEditable ? 'cursor-grab hover:border-white/20' : 'cursor-default'}
                                               `}
                                           >
                                               <div className="absolute top-0 left-0 w-[2px] h-full bg-copper-DEFAULT opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                               
-                                              <button 
-                                                onClick={() => setIsConfirmDeleteOpen(task.id)}
-                                                className="absolute top-3 right-3 p-1.5 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-md"
-                                              >
-                                                  <Trash2 size={14} />
-                                              </button>
+                                              {isEditable && (
+                                                  <button 
+                                                    onClick={() => setIsConfirmDeleteOpen(task.id)}
+                                                    className="absolute top-3 right-3 p-1.5 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-md"
+                                                  >
+                                                      <Trash2 size={14} />
+                                                  </button>
+                                              )}
 
                                               <div className="flex justify-between items-start mb-4">
                                                   <span className={`text-[9px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm text-white ${getCategoryColor(task.category)} bg-opacity-30 text-opacity-90`}>
                                                       {task.category}
                                                   </span>
-                                                  <GripVertical size={16} className="text-gray-700 opacity-20 group-hover:opacity-100 transition-opacity pr-6" />
+                                                  {isEditable && <GripVertical size={16} className="text-gray-700 opacity-20 group-hover:opacity-100 transition-opacity pr-6" />}
                                               </div>
                                               <h4 className="text-gray-100 font-medium mb-4 leading-relaxed text-[15px]">{task.title}</h4>
                                               <div className="flex justify-between items-center pt-4 border-t border-white/5">

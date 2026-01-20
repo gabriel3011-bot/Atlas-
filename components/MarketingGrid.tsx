@@ -17,12 +17,14 @@ import {
   Clock,
   Video
 } from 'lucide-react';
-import { MarketingPost } from '../types';
+import { MarketingPost, ViewProps } from '../types';
 
 // Tipagem local garantida para evitar erros de importação
 type MarketingViewMode = 'calendar' | 'feed';
 
-const MarketingGrid: React.FC = () => {
+interface MarketingGridProps extends ViewProps {}
+
+const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
   const [activeView, setActiveView] = useState<MarketingViewMode>('calendar');
   
   // Dados iniciais vazios (sem mock data fictício)
@@ -63,6 +65,7 @@ const MarketingGrid: React.FC = () => {
 
   const handleAddPost = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isEditable) return;
     const post: MarketingPost = {
       id: Date.now(),
       image_url: '',
@@ -115,12 +118,14 @@ const MarketingGrid: React.FC = () => {
           <p className="text-gray-500 font-light text-sm">Planejamento visual e curadoria Atlas.</p>
         </div>
         
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-copper-gradient text-black px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 w-full md:w-auto"
-        >
-          <Plus size={20} /> Novo Post
-        </button>
+        {isEditable && (
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-copper-gradient text-black px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 w-full md:w-auto"
+          >
+            <Plus size={20} /> Novo Post
+          </button>
+        )}
       </div>
 
       {/* View Switcher Tabs */}
@@ -198,16 +203,18 @@ const MarketingGrid: React.FC = () => {
                           ))}
                         </div>
 
-                        <button 
-                          onClick={() => {
-                            setNewPostData(prev => ({ ...prev, scheduled_date: dayObj.date }));
-                            setIsAddModalOpen(true);
-                          }}
-                          className="mt-auto opacity-0 group-hover:opacity-100 p-2 text-gray-700 hover:text-copper-light transition-all flex items-center gap-1"
-                        >
-                          <Plus size={12} />
-                          <span className="text-[8px] font-bold uppercase tracking-widest">Slot</span>
-                        </button>
+                        {isEditable && (
+                          <button 
+                            onClick={() => {
+                              setNewPostData(prev => ({ ...prev, scheduled_date: dayObj.date }));
+                              setIsAddModalOpen(true);
+                            }}
+                            className="mt-auto opacity-0 group-hover:opacity-100 p-2 text-gray-700 hover:text-copper-light transition-all flex items-center gap-1"
+                          >
+                            <Plus size={12} />
+                            <span className="text-[8px] font-bold uppercase tracking-widest">Slot</span>
+                          </button>
+                        )}
                       </>
                     ) : (
                         /* Renderização segura para dias vazios */

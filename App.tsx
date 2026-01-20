@@ -12,9 +12,9 @@ import SecretClubGame2048 from './components/SecretClubGame2048';
 import SecretTermoGame from './components/SecretTermoGame';
 import LoginScreen from './components/LoginScreen';
 import FeedbackWidget from './components/FeedbackWidget';
-import { View } from './types';
+import { View, UserRole } from './types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Menu, Gamepad2, Sparkles, Trophy } from 'lucide-react';
+import { Menu, Gamepad2, Sparkles, Trophy, Lock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
@@ -22,35 +22,78 @@ const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('MEMBER');
+
+  // Lógica de Permissões Baseada em E-mail
+  const determineRole = (email: string): UserRole => {
+    const normalizedEmail = email.toLowerCase();
+    
+    // Lista de Admins (Você, Presidente, Vice)
+    const admins = ['admin@atlas.com', 'presidente@atlas.com', 'vice@atlas.com', 'dev@atlas.com'];
+    
+    if (admins.includes(normalizedEmail)) return 'ADMIN';
+    if (normalizedEmail.includes('financeiro')) return 'FINANCE';
+    if (normalizedEmail.includes('marketing')) return 'MARKETING';
+    if (normalizedEmail.includes('eventos')) return 'EVENTS';
+    if (normalizedEmail.includes('juridico')) return 'LEGAL';
+    
+    return 'MEMBER';
+  };
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
+        if (session?.user?.email) {
+          setUserRole(determineRole(session.user.email));
+        }
         setAuthLoading(false);
       });
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
+        if (session?.user?.email) {
+          setUserRole(determineRole(session.user.email));
+        }
       });
       return () => subscription.unsubscribe();
     } else {
       setAuthLoading(false);
+      // Fallback para desenvolvimento sem Supabase (assume Admin para testes locais se quiser)
+      setUserRole('ADMIN'); 
     }
   }, []);
 
+  // Verifica se o usuário pode editar a visualização atual
+  const checkPermission = (view: View): boolean => {
+    if (userRole === 'ADMIN') return true;
+    
+    switch (view) {
+      case View.FINANCE: return userRole === 'FINANCE';
+      case View.MARKETING: return userRole === 'MARKETING';
+      case View.EVENTS: return userRole === 'EVENTS';
+      case View.LEGAL: return userRole === 'LEGAL';
+      case View.DASHBOARD: return true; // Todos podem editar suas tarefas (simplificado) ou restringir se preferir
+      case View.VOTING: return false; // Apenas admin cria votações
+      case View.MEMBERS: return false; // Apenas admin gerencia membros
+      default: return false;
+    }
+  };
+
+  const isEditable = checkPermission(currentView);
+
   const renderContent = () => {
     switch (currentView) {
-      case View.DASHBOARD: return <KanbanBoard />;
-      case View.FINANCE: return <FinanceDashboard />;
-      case View.EVENTS: return <EventsCalendar />;
-      case View.MARKETING: return <MarketingGrid />;
-      case View.LEGAL: return <LegalDocs />;
-      case View.MEMBERS: return <MembersTab />;
-      case View.VOTING: return <VotingTab />;
+      case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} />;
+      case View.FINANCE: return <FinanceDashboard isEditable={isEditable} />;
+      case View.EVENTS: return <EventsCalendar isEditable={isEditable} />;
+      case View.MARKETING: return <MarketingGrid isEditable={isEditable} />;
+      case View.LEGAL: return <LegalDocs isEditable={isEditable} />;
+      case View.MEMBERS: return <MembersTab isEditable={isEditable} />;
+      case View.VOTING: return <VotingTab isEditable={isEditable} />;
       case View.GAME:
         return (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Secret Club Header - Refactored to match Events Style */}
+            {/* Secret Club Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
               <div>
                 <h2 className="font-serif text-4xl text-white italic tracking-tight mb-2">Clube Secreto</h2>
@@ -88,7 +131,7 @@ const App: React.FC = () => {
             </div>
           </div>
         );
-      default: return <KanbanBoard />;
+      default: return <KanbanBoard isEditable={isEditable} />;
     }
   };
 
@@ -137,6 +180,13 @@ const App: React.FC = () => {
         </header>
 
         <div className="flex-1 w-full px-4 md:px-12 py-8 max-w-[1600px] mx-auto transition-all duration-500">
+           {/* Visual Indicator of Read-Only Mode */}
+           {!isEditable && currentView !== View.GAME && (
+             <div className="mb-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg w-fit">
+                <Lock size={12} className="text-gray-500" />
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest">Modo Visualização (Sem permissão de edição)</span>
+             </div>
+           )}
           {renderContent()}
         </div>
       </main>

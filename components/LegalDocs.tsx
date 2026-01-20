@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { LegalDocument } from '../types';
+import { LegalDocument, ViewProps } from '../types';
 import { FileText, Download, CheckCircle, Clock, Plus, X, Loader2, FileUp } from 'lucide-react';
 
-const LegalDocs: React.FC = () => {
+interface LegalDocsProps extends ViewProps {}
+
+const LegalDocs: React.FC<LegalDocsProps> = ({ isEditable }) => {
   const [docs, setDocs] = useState<LegalDocument[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -88,12 +90,14 @@ const LegalDocs: React.FC = () => {
           <h2 className="font-serif text-3xl text-white mb-2">Contratos</h2>
           <p className="text-gray-400 font-light">Gestão de documentos legais e assinaturas.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-copper-DEFAULT/20 transition hover:-translate-y-0.5 flex items-center gap-2"
-        >
-          <Plus size={18} /> Novo Contrato
-        </button>
+        {isEditable && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-copper-DEFAULT/20 transition hover:-translate-y-0.5 flex items-center gap-2"
+          >
+            <Plus size={18} /> Novo Contrato
+          </button>
+        )}
       </div>
       
       <div className="bg-[#121212] rounded-xl shadow-lg border border-white/5 overflow-hidden">
