@@ -1,13 +1,15 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import { Task, TaskStatus, UrgencyLevel, ViewProps } from '../types';
-import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle, WifiOff } from 'lucide-react';
+import { Task, TaskStatus, UrgencyLevel, ViewProps, UserRole } from '../types';
+import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History, LayoutDashboard, AlertTriangle, WifiOff, Lock } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-interface KanbanBoardProps extends ViewProps {}
+interface KanbanBoardProps extends ViewProps {
+  userRole?: UserRole; // Recebe o cargo para validar ações granulares
+}
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState<number | null>(null);
@@ -15,10 +17,22 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   
+  // Mapeamento de Cargo para Categoria
+  const roleToCategory: Partial<Record<UserRole, string>> = {
+      'FINANCEIRO': 'Financeiro',
+      'MARKETING': 'Marketing',
+      'EVENTOS': 'Eventos',
+      'JURIDICO': 'Jurídico',
+      'ADM': 'all'
+  };
+
+  // Determina categoria permitida para o usuário atual
+  const allowedCategory = userRole ? roleToCategory[userRole] : undefined;
+
   // Form State
   const [newTask, setNewTask] = useState({
     title: '',
-    category: 'Geral',
+    category: allowedCategory && allowedCategory !== 'all' ? allowedCategory : 'Geral',
     deadline: '',
     urgency: 'Medium' as UrgencyLevel,
     assigned_to: 'Eu',
@@ -27,14 +41,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
 
   useEffect(() => {
     fetchTasks();
-    
-    // Auto-refresh a cada minuto
     const interval = setInterval(() => {
-        if (isSupabaseConfigured()) {
-            fetchTasks(true); // silent refresh
-        }
+        if (isSupabaseConfigured()) fetchTasks(true);
     }, 60000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -47,31 +56,38 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
         if (error) throw error;
         if (data) setTasks(data);
       } else {
-        // Fallback: Carrega do LocalStorage se não houver backend
         const localData = localStorage.getItem('atlas_tasks');
-        if (localData) {
-            setTasks(JSON.parse(localData));
-        }
+        if (localData) setTasks(JSON.parse(localData));
       }
     } catch (err: any) {
-      console.error("Erro ao carregar tarefas:", err);
       if (!silent) setFetchError("Falha ao sincronizar. Usando modo offline.");
     } finally {
       if (!silent) setIsLoading(false);
     }
   };
 
+  // Verifica se o usuário tem permissão para editar ESTA tarefa específica
+  const canModifyTask = (taskCategory: string): boolean => {
+      if (!userRole) return false;
+      if (userRole === 'ADM') return true;
+      if (userRole === 'MEMBER') return false; // Membros apenas visualizam
+      // Verifica se a categoria da tarefa corresponde ao cargo do usuário
+      return roleToCategory[userRole] === taskCategory;
+  };
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isEditable) return;
+    // Bloqueio extra no submit
+    if (userRole !== 'ADM' && newTask.category !== allowedCategory) {
+        alert(`Você só pode criar tarefas para a categoria: ${allowedCategory}`);
+        return;
+    }
 
-    // Prepara payload corrigindo campos vazios para null (Postgres não aceita string vazia em datas)
     const taskPayload = {
         ...newTask,
         deadline: newTask.deadline ? newTask.deadline : null
     };
 
-    // Optimistic Update (Atualiza a tela antes do banco)
     const tempId = Date.now();
     const mockTask: Task = { id: tempId, ...newTask, created_at: new Date().toISOString() };
     const updatedTasks = [...tasks, mockTask];
@@ -81,54 +97,63 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
       try {
         const { data, error } = await supabase.from('tasks').insert([taskPayload]).select();
         if (error) throw error;
-        
-        // Atualiza com o ID real do banco
-        if (data) {
-            setTasks(prev => prev.map(t => t.id === tempId ? data[0] : t));
-        }
+        if (data) setTasks(prev => prev.map(t => t.id === tempId ? data[0] : t));
       } catch (err) {
-        console.error("Erro ao salvar tarefa remota:", err);
-        alert("Erro ao salvar no banco. Verifique sua conexão.");
+        alert("Erro ao salvar no banco.");
       }
     } else {
-        // Salva no LocalStorage
         localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
 
     setIsModalOpen(false);
-    setNewTask({ title: '', category: 'Geral', deadline: '', urgency: 'Medium', assigned_to: 'Eu', status: 'TODO' });
+    setNewTask({ 
+        title: '', 
+        category: allowedCategory && allowedCategory !== 'all' ? allowedCategory : 'Geral', 
+        deadline: '', 
+        urgency: 'Medium', 
+        assigned_to: 'Eu', 
+        status: 'TODO' 
+    });
   };
 
   const handleDeleteTask = async (id: number) => {
-    if (!isEditable) return;
+    const taskToDelete = tasks.find(t => t.id === id);
+    if (!taskToDelete) return;
+
+    if (!canModifyTask(taskToDelete.category)) {
+        alert("Permissão negada: Você não pode excluir tarefas de outra área.");
+        setIsConfirmDeleteOpen(null);
+        return;
+    }
 
     const updatedTasks = tasks.filter(t => t.id !== id);
     setTasks(updatedTasks);
     setIsConfirmDeleteOpen(null);
 
     if (isSupabaseConfigured()) {
-        try {
-            await supabase.from('tasks').delete().eq('id', id);
-        } catch (err) {
-            console.error("Erro ao deletar tarefa remota:", err);
-        }
+        await supabase.from('tasks').delete().eq('id', id);
     } else {
         localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
   };
 
   const onDragEnd = async (result: DropResult) => {
-    if (!isEditable) return;
-
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const newStatus = destination.droppableId as TaskStatus;
     const taskId = Number(draggableId);
+    const task = tasks.find(t => t.id === taskId);
+    
+    // Bloqueia movimento se não for da área
+    if (task && !canModifyTask(task.category)) {
+        alert("Permissão negada: Você só pode mover tarefas da sua área.");
+        return;
+    }
+
+    const newStatus = destination.droppableId as TaskStatus;
     const now = new Date().toISOString();
 
-    // Atualiza estado local
     const updatedTasks = tasks.map((t) => 
         t.id === taskId 
             ? { ...t, status: newStatus, completed_at: newStatus === 'DONE' ? now : undefined } 
@@ -137,39 +162,28 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
     setTasks(updatedTasks);
 
     if (isSupabaseConfigured()) {
-        try {
-            const updateData: any = { status: newStatus };
-            if (newStatus === 'DONE') updateData.completed_at = now;
-            else updateData.completed_at = null;
-            await supabase.from('tasks').update(updateData).eq('id', taskId);
-        } catch (err) {
-            console.error("Erro ao atualizar status remoto:", err);
-        }
+        const updateData: any = { status: newStatus };
+        if (newStatus === 'DONE') updateData.completed_at = now;
+        else updateData.completed_at = null;
+        await supabase.from('tasks').update(updateData).eq('id', taskId);
     } else {
         localStorage.setItem('atlas_tasks', JSON.stringify(updatedTasks));
     }
   };
 
   const ARCHIVE_TIME_MS = 10 * 60 * 1000;
-
   const { activeTasks, archivedTasks } = useMemo(() => {
     const now = new Date().getTime();
     const active: Task[] = [];
     const archived: Task[] = [];
-
     tasks.forEach(task => {
         if (task.status === 'DONE' && task.completed_at) {
-            const completedTime = new Date(task.completed_at).getTime();
-            if (now - completedTime > ARCHIVE_TIME_MS) {
-                archived.push(task);
-            } else {
-                active.push(task);
-            }
+            if (now - new Date(task.completed_at).getTime() > ARCHIVE_TIME_MS) archived.push(task);
+            else active.push(task);
         } else {
             active.push(task);
         }
     });
-
     return { activeTasks: active, archivedTasks: archived };
   }, [tasks]);
 
@@ -204,9 +218,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                 {showHistory ? 'Histórico' : 'Quadro Executivo'}
            </h2>
            <p className="text-gray-400 font-light max-w-md">
-                {showHistory 
-                    ? 'Registro de missões finalizadas com sucesso.' 
-                    : 'Acompanhamento tático das operações Atlas 2026.'}
+                {showHistory ? 'Registro de missões finalizadas.' : 'Gestão tática operacional.'}
+                {userRole && userRole !== 'ADM' && userRole !== 'MEMBER' && (
+                    <span className="block mt-1 text-xs text-copper-light uppercase tracking-widest font-bold">
+                        Acesso de Edição: {roleToCategory[userRole]}
+                    </span>
+                )}
            </p>
         </div>
         
@@ -223,7 +240,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                 {showHistory ? 'Voltar' : 'Histórico'}
             </button>
 
-            {!showHistory && isEditable && (
+            {!showHistory && userRole !== 'MEMBER' && (
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
@@ -251,38 +268,27 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
         </div>
       ) : showHistory ? (
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar animate-in fade-in duration-500">
-            {archivedTasks.length === 0 ? (
-                <div className="bg-[#121212] border border-dashed border-white/5 rounded-2xl p-20 flex flex-col items-center justify-center text-gray-600">
-                    <History size={48} className="mb-4 opacity-20" />
-                    <p className="font-serif italic text-xl">Nenhuma tarefa arquivada.</p>
-                </div>
-            ) : (
-                archivedTasks.map((task) => (
-                    <div key={task.id} className="bg-[#121212] p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-copper-DEFAULT/30 transition">
-                        <div className="flex items-center gap-6">
-                            <div className="p-3 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">
-                                <Check size={20} />
-                            </div>
-                            <div>
-                                <h4 className="text-gray-100 font-medium text-lg">{task.title}</h4>
-                                <div className="flex items-center gap-4 mt-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{task.category}</span>
-                                    <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
-                                    <span className="text-xs text-gray-600">Concluído em: {new Date(task.completed_at!).toLocaleString('pt-BR')}</span>
-                                </div>
+            {archivedTasks.map((task) => (
+                <div key={task.id} className="bg-[#121212] p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-copper-DEFAULT/30 transition">
+                    <div className="flex items-center gap-6">
+                        <div className="p-3 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">
+                            <Check size={20} />
+                        </div>
+                        <div>
+                            <h4 className="text-gray-100 font-medium text-lg">{task.title}</h4>
+                            <div className="flex items-center gap-4 mt-1">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{task.category}</span>
+                                <span className="text-xs text-gray-600">Concluído em: {new Date(task.completed_at!).toLocaleString('pt-BR')}</span>
                             </div>
                         </div>
-                        {isEditable && (
-                            <button 
-                                onClick={() => setIsConfirmDeleteOpen(task.id)}
-                                className="p-3 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
-                            >
-                                <Trash2 size={20} />
-                            </button>
-                        )}
                     </div>
-                ))
-            )}
+                    {canModifyTask(task.category) && (
+                        <button onClick={() => setIsConfirmDeleteOpen(task.id)} className="p-3 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition">
+                            <Trash2 size={20} />
+                        </button>
+                    )}
+                </div>
+            ))}
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
@@ -293,11 +299,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                     <div className="p-5 border-b border-white/5 flex items-center justify-between">
                        <h3 className="font-serif text-xl text-gray-200">{col.label}</h3>
                        <span className="text-[10px] font-bold text-copper-light bg-copper-light/10 px-2 py-1 rounded border border-copper-light/20 uppercase tracking-tighter">
-                          {activeTasks.filter((t) => t.status === col.id).length} itens
+                          {activeTasks.filter((t) => t.status === col.id).length}
                        </span>
                     </div>
                     
-                    <Droppable droppableId={col.id} isDropDisabled={!isEditable}>
+                    <Droppable droppableId={col.id} isDropDisabled={userRole === 'MEMBER'}>
                       {(provided, snapshot) => (
                           <div 
                               {...provided.droppableProps}
@@ -306,10 +312,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                                   snapshot.isDraggingOver ? 'bg-copper-dark/5 shadow-inner' : 'bg-transparent'
                               }`}
                           >
-                              {activeTasks
-                              .filter((task) => task.status === col.id)
-                              .map((task, index) => {
+                              {activeTasks.filter((task) => task.status === col.id).map((task, index) => {
                                   const urgencyStyles = getUrgencyStyles(task.urgency);
+                                  const isEditable = canModifyTask(task.category); // Verifica permissão para este card
+
                                   return (
                                   <Draggable key={task.id} draggableId={task.id.toString()} index={index} isDragDisabled={!isEditable}>
                                       {(provided, snapshot) => (
@@ -319,18 +325,22 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                                               {...provided.dragHandleProps}
                                               className={`
                                                   bg-[#121212] p-5 rounded-xl border border-white/5 shadow-lg group relative overflow-hidden transition-all duration-200
-                                                  ${snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 ring-2 ring-copper-DEFAULT/50 z-50 bg-[#18181b] cursor-grabbing' : isEditable ? 'cursor-grab hover:border-white/20' : 'cursor-default'}
+                                                  ${snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 ring-2 ring-copper-DEFAULT/50 z-50 bg-[#18181b] cursor-grabbing' : isEditable ? 'cursor-grab hover:border-white/20' : 'cursor-default opacity-80'}
                                               `}
                                           >
-                                              <div className="absolute top-0 left-0 w-[2px] h-full bg-copper-DEFAULT opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                              <div className={`absolute top-0 left-0 w-[2px] h-full ${isEditable ? 'bg-copper-DEFAULT opacity-0 group-hover:opacity-100' : 'bg-gray-700 opacity-20'} transition-opacity`}></div>
                                               
-                                              {isEditable && (
+                                              {isEditable ? (
                                                   <button 
                                                     onClick={() => setIsConfirmDeleteOpen(task.id)}
                                                     className="absolute top-3 right-3 p-1.5 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-md"
                                                   >
                                                       <Trash2 size={14} />
                                                   </button>
+                                              ) : (
+                                                  <div className="absolute top-3 right-3 text-gray-700 opacity-20">
+                                                      <Lock size={12} />
+                                                  </div>
                                               )}
 
                                               <div className="flex justify-between items-start mb-4">
@@ -390,14 +400,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-copper-light uppercase tracking-wider mb-2">Categoria</label>
-                            <select className="w-full px-4 py-3 rounded-lg bg-[#0a0a0a] border border-white/10 text-white focus:border-copper-DEFAULT outline-none appearance-none cursor-pointer hover:bg-[#151515] transition" value={newTask.category} onChange={(e) => setNewTask({...newTask, category: e.target.value})}>
-                                <option value="Geral">Geral</option>
-                                <option value="Financeiro">Financeiro</option>
-                                <option value="Design">Design</option>
-                                <option value="Marketing">Marketing</option>
-                                <option value="Jurídico">Jurídico</option>
-                                <option value="Logística">Logística</option>
-                            </select>
+                            {userRole === 'ADM' ? (
+                                <select className="w-full px-4 py-3 rounded-lg bg-[#0a0a0a] border border-white/10 text-white focus:border-copper-DEFAULT outline-none appearance-none cursor-pointer" value={newTask.category} onChange={(e) => setNewTask({...newTask, category: e.target.value})}>
+                                    <option value="Geral">Geral</option>
+                                    <option value="Financeiro">Financeiro</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Jurídico">Jurídico</option>
+                                    <option value="Eventos">Eventos</option>
+                                    <option value="Logística">Logística</option>
+                                </select>
+                            ) : (
+                                <div className="w-full px-4 py-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-gray-400 cursor-not-allowed flex items-center justify-between">
+                                    <span>{newTask.category}</span>
+                                    <Lock size={14} />
+                                </div>
+                            )}
                         </div>
                         <div>
                              <label className="block text-xs font-bold text-copper-light uppercase tracking-wider mb-2">Responsável</label>

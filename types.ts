@@ -5,10 +5,12 @@ export type MarketingStatus = 'idea' | 'scheduled' | 'posted';
 export type DocumentStatus = 'signed' | 'pending';
 export type UrgencyLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 
-export type UserRole = 'ADMIN' | 'FINANCE' | 'MARKETING' | 'EVENTS' | 'LEGAL' | 'MEMBER';
+// Novos cargos definidos conforme solicitação
+export type UserRole = 'ADM' | 'FINANCEIRO' | 'MARKETING' | 'EVENTOS' | 'JURIDICO' | 'MEMBER';
 
 export interface ViewProps {
   isEditable: boolean;
+  userRole?: UserRole; // Adicionado para controle granular no Kanban
 }
 
 export interface Task {

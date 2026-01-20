@@ -1,43 +1,16 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Função auxiliar para acessar variáveis de ambiente de forma segura
-const getEnv = (key: string) => {
-  // Tenta acessar via import.meta.env (Vite)
-  // O optional chaining (?.) previne o erro se .env for undefined
-  // @ts-ignore
-  const viteEnv = import.meta.env?.[key];
-  if (viteEnv) return viteEnv;
+// Credenciais do Projeto Atlas 2026
+const SUPABASE_URL = 'https://bblmehkibwzzhsfuuqjw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJibG1laGtpYnd6emhzZnV1cWp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwODU2NzYsImV4cCI6MjA4MzY2MTY3Nn0.mXvFjK3zLkx8PVLfH4Uuq5XCYuTKY4MAV0t6StfvAvk';
 
-  // Tenta acessar via process.env (Legado/Webpack/Jest)
-  try {
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env) {
-      // @ts-ignore
-      return process.env[key];
-    }
-  } catch (e) {
-    // Ignora erro de referência
-  }
+console.log("Iniciando conexão com Supabase...", { url: SUPABASE_URL });
 
-  return undefined;
-};
-
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
-
-console.log("Iniciando Supabase...", { 
-  url: supabaseUrl ? "OK (Encontrada)" : "ERRO (Faltando - Modo Offline)",
-  key: supabaseAnonKey ? "OK (Encontrada)" : "ERRO (Faltando - Modo Offline)"
-});
-
-// Cria um cliente seguro. Se as chaves faltarem, ele não trava o site (tela preta),
-// apenas desativa o banco de dados.
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
 export const isSupabaseConfigured = () => {
-  return !!supabaseUrl && !!supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co';
+  return true;
 };

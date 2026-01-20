@@ -1,4 +1,4 @@
-import React, { Component, ReactNode } from "react";
+import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface ErrorBoundaryProps {
@@ -13,15 +13,18 @@ interface ErrorBoundaryState {
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: "" };
+    this.state = {
+      hasError: false,
+      error: ""
+    };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error: error.message };
   }
 
-  componentDidCatch(error: Error) {
-    console.error("Erro Crítico Capturado:", error);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Erro Crítico Capturado:", error, errorInfo);
   }
 
   render() {

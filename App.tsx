@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import KanbanBoard from './components/KanbanBoard';
@@ -24,55 +23,89 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('MEMBER');
 
-  // Lógica de Permissões Baseada em E-mail
-  const determineRole = (email: string): UserRole => {
+  // Lógica de Fallback Atualizada para os Novos Cargos
+  const determineRoleFromEmail = (email: string): UserRole => {
     const normalizedEmail = email.toLowerCase();
-    
-    // Lista de Admins (Você, Presidente, Vice)
     const admins = ['admin@atlas.com', 'presidente@atlas.com', 'vice@atlas.com', 'dev@atlas.com'];
     
-    if (admins.includes(normalizedEmail)) return 'ADMIN';
-    if (normalizedEmail.includes('financeiro')) return 'FINANCE';
+    if (admins.includes(normalizedEmail)) return 'ADM';
+    if (normalizedEmail.includes('financeiro')) return 'FINANCEIRO';
     if (normalizedEmail.includes('marketing')) return 'MARKETING';
-    if (normalizedEmail.includes('eventos')) return 'EVENTS';
-    if (normalizedEmail.includes('juridico')) return 'LEGAL';
+    if (normalizedEmail.includes('eventos')) return 'EVENTOS';
+    if (normalizedEmail.includes('juridico')) return 'JURIDICO';
     
     return 'MEMBER';
+  };
+
+  const syncUserRole = async (user: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data && data.role) {
+        console.log("Cargo carregado do Supabase:", data.role);
+        setUserRole(data.role as UserRole);
+      } else {
+        const initialRole = determineRoleFromEmail(user.email || '');
+        console.log("Primeiro acesso. Definindo cargo inicial:", initialRole);
+        
+        await supabase.from('user_roles').insert([
+          { user_id: user.id, role: initialRole }
+        ]);
+        
+        setUserRole(initialRole);
+      }
+    } catch (err) {
+      console.error("Erro ao sincronizar cargo:", err);
+      setUserRole(determineRoleFromEmail(user.email || ''));
+    }
   };
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
-        if (session?.user?.email) {
-          setUserRole(determineRole(session.user.email));
+        if (session?.user) {
+          syncUserRole(session.user);
         }
         setAuthLoading(false);
       });
+
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
-        if (session?.user?.email) {
-          setUserRole(determineRole(session.user.email));
+        if (session?.user) {
+          syncUserRole(session.user);
         }
       });
       return () => subscription.unsubscribe();
     } else {
       setAuthLoading(false);
-      // Fallback para desenvolvimento sem Supabase (assume Admin para testes locais se quiser)
-      setUserRole('ADMIN'); 
+      setUserRole('ADM'); // Fallback dev local
     }
   }, []);
 
-  // Verifica se o usuário pode editar a visualização atual
+  // Lógica de Permissões (Quem pode EDITAR o quê)
   const checkPermission = (view: View): boolean => {
-    if (userRole === 'ADMIN') return true;
-    
+    // 1. ADM pode tudo
+    if (userRole === 'ADM') return true;
+
+    // 2. Todos podem jogar
+    if (view === View.GAME) return true;
+
+    // 3. Regras específicas por cargo
     switch (view) {
-      case View.FINANCE: return userRole === 'FINANCE';
+      case View.FINANCE: return userRole === 'FINANCEIRO';
       case View.MARKETING: return userRole === 'MARKETING';
-      case View.EVENTS: return userRole === 'EVENTS';
-      case View.LEGAL: return userRole === 'LEGAL';
-      case View.DASHBOARD: return true; // Todos podem editar suas tarefas (simplificado) ou restringir se preferir
+      case View.EVENTS: return userRole === 'EVENTOS';
+      case View.LEGAL: return userRole === 'JURIDICO';
+      
+      // No Dashboard (Kanban), todos "podem editar" (para entrar na tela), 
+      // mas o KanbanBoard.tsx vai restringir o que exatamente eles podem mover/criar.
+      case View.DASHBOARD: return true; 
+      
       case View.VOTING: return false; // Apenas admin cria votações
       case View.MEMBERS: return false; // Apenas admin gerencia membros
       default: return false;
@@ -82,8 +115,9 @@ const App: React.FC = () => {
   const isEditable = checkPermission(currentView);
 
   const renderContent = () => {
+    // Passamos userRole para o Kanban para controle granular
     switch (currentView) {
-      case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} />;
+      case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} userRole={userRole} />;
       case View.FINANCE: return <FinanceDashboard isEditable={isEditable} />;
       case View.EVENTS: return <EventsCalendar isEditable={isEditable} />;
       case View.MARKETING: return <MarketingGrid isEditable={isEditable} />;
@@ -93,7 +127,6 @@ const App: React.FC = () => {
       case View.GAME:
         return (
           <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Secret Club Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
               <div>
                 <h2 className="font-serif text-4xl text-white italic tracking-tight mb-2">Clube Secreto</h2>
@@ -105,7 +138,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Sub-Tabs Navigation */}
             <div className="flex border-b border-white/5 space-x-10 mb-10">
               <button 
                 onClick={() => setActiveGame('termo')}
@@ -125,13 +157,12 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Active Game Area */}
             <div className="flex-1 w-full flex items-center justify-center animate-in fade-in duration-500 min-h-[600px]">
               {activeGame === 'termo' ? <SecretTermoGame /> : <SecretClubGame2048 />}
             </div>
           </div>
         );
-      default: return <KanbanBoard isEditable={isEditable} />;
+      default: return <KanbanBoard isEditable={isEditable} userRole={userRole} />;
     }
   };
 
@@ -181,10 +212,10 @@ const App: React.FC = () => {
 
         <div className="flex-1 w-full px-4 md:px-12 py-8 max-w-[1600px] mx-auto transition-all duration-500">
            {/* Visual Indicator of Read-Only Mode */}
-           {!isEditable && currentView !== View.GAME && (
+           {!isEditable && currentView !== View.GAME && currentView !== View.DASHBOARD && (
              <div className="mb-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg w-fit">
                 <Lock size={12} className="text-gray-500" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest">Modo Visualização (Sem permissão de edição)</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest">Acesso Somente Leitura</span>
              </div>
            )}
           {renderContent()}
