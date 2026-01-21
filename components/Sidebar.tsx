@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X } from 'lucide-react';
+import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X, LogOut } from 'lucide-react';
 import { View } from '../types';
+import { supabase } from '../supabaseClient';
 
 interface SidebarProps {
   currentView: View;
@@ -27,6 +28,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
     if (window.innerWidth < 1024) {
       onClose();
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
   };
 
   return (
@@ -104,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
 
       {/* Footer Profile */}
       <div className="p-5 border-t border-white/5 bg-city-black/80 backdrop-blur-xl">
-        <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all duration-500 cursor-pointer group">
+        <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all duration-500 cursor-pointer group mb-2">
             <div className="relative">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-copper-dark via-copper-light to-white p-[1px]">
                     <div className="w-full h-full rounded-full bg-city-black flex items-center justify-center text-[10px] text-white font-bold font-serif italic">A</div>
@@ -116,6 +122,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
                 <p className="text-[9px] text-copper-light/60 uppercase tracking-widest font-black italic">Acesso Master</p>
             </div>
         </div>
+        
+        <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 transition-all text-xs font-bold uppercase tracking-wider"
+        >
+            <LogOut size={14} /> Sair
+        </button>
       </div>
     </div>
   );

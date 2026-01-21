@@ -121,16 +121,16 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
 
   return (
     <div className="h-full flex flex-col space-y-8 animate-in fade-in duration-700">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+      {/* Header Responsivo */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="font-serif text-4xl text-white italic tracking-tight mb-2">Eventos & Experiências</h2>
+          <h2 className="font-serif text-3xl md:text-4xl text-white italic tracking-tight mb-2">Eventos & Experiências</h2>
           <p className="text-gray-500 font-light">Gestão do calendário social e institucional da Atlas.</p>
         </div>
         {isEditable && (
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-copper-gradient text-black px-8 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_40px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-2"
+            className="w-full md:w-auto bg-copper-gradient text-black px-8 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_40px_rgba(197,131,106,0.5)] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2"
           >
             <Plus size={20} /> Novo Evento
           </button>
@@ -138,17 +138,17 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
       </div>
 
       {/* Sub-Tabs Navigation */}
-      <div className="flex border-b border-white/5 space-x-10">
+      <div className="flex border-b border-white/5 space-x-10 overflow-x-auto custom-scrollbar pb-1">
         <button 
           onClick={() => setActiveTab('UPCOMING')}
-          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'UPCOMING' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative shrink-0 ${activeTab === 'UPCOMING' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
         >
           Próximos Eventos
           {activeTab === 'UPCOMING' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
         </button>
         <button 
           onClick={() => setActiveTab('PAST')}
-          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === 'PAST' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative shrink-0 ${activeTab === 'PAST' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
         >
           Histórico
           {activeTab === 'PAST' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
@@ -162,16 +162,16 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
           <span className="text-gray-500 font-serif italic">Consultando agenda...</span>
         </div>
       ) : filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 pb-20">
           {filteredEvents.map((event) => {
             const { day, month, time } = formatDate(event.event_date);
             return (
               <div 
                 key={event.id}
-                className="group relative bg-[#0d0d0d] rounded-2xl border border-white/5 overflow-hidden transition-all duration-500 hover:border-copper-DEFAULT/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col h-[420px]"
+                className="group relative bg-[#0d0d0d] rounded-2xl border border-white/5 overflow-hidden transition-all duration-500 hover:border-copper-DEFAULT/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col h-auto md:h-[420px]"
               >
                 {/* Visual Glass Effect Top */}
-                <div className="h-32 bg-gradient-to-br from-copper-dark/20 to-transparent relative p-6">
+                <div className="h-28 md:h-32 bg-gradient-to-br from-copper-dark/20 to-transparent relative p-6">
                   <div className="absolute top-6 right-6">
                     <span className="px-3 py-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-copper-light">
                       {event.category}
@@ -183,7 +183,7 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
                         <span className="block text-[10px] font-black text-copper-DEFAULT mt-1">{month}</span>
                      </div>
                      <div className="flex flex-col">
-                        <span className="text-white font-medium text-lg leading-tight group-hover:text-copper-light transition-colors">{event.title}</span>
+                        <span className="text-white font-medium text-lg leading-tight group-hover:text-copper-light transition-colors line-clamp-2">{event.title}</span>
                         <span className="text-gray-500 text-xs mt-1 flex items-center gap-1">
                           <Clock size={12} className="text-copper-dark" /> {time}h
                         </span>
@@ -192,8 +192,8 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 p-8 flex flex-col justify-between">
-                  <div className="space-y-6">
+                <div className="flex-1 p-6 md:p-8 flex flex-col justify-between gap-6">
+                  <div className="space-y-4 md:space-y-6">
                     <div className="space-y-3">
                       <div className="flex items-start gap-3 text-gray-400 text-sm">
                         <MapPin size={16} className="text-copper-DEFAULT mt-0.5 shrink-0" />
@@ -210,7 +210,7 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
                     </p>
                   </div>
 
-                  <div className="flex justify-between items-center pt-6 border-t border-white/5">
+                  <div className="flex justify-between items-center pt-4 md:pt-6 border-t border-white/5">
                     <div className="flex -space-x-2">
                       {[1,2,3].map(i => (
                         <div key={i} className="w-8 h-8 rounded-full bg-zinc-900 border border-black flex items-center justify-center text-[10px] text-gray-500 font-bold">
@@ -256,7 +256,7 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)}></div>
-          <div className="bg-[#0f0f0f] border border-white/10 rounded-3xl w-full max-w-2xl relative z-10 overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+          <div className="bg-[#0f0f0f] border border-white/10 rounded-3xl w-full max-w-2xl relative z-10 overflow-hidden shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] flex flex-col">
             <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-copper-DEFAULT/10 rounded-xl">
@@ -267,8 +267,8 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
               <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-white"><X size={24}/></button>
             </div>
 
-            <form onSubmit={handleAddEvent} className="p-8 grid grid-cols-2 gap-6">
-              <div className="col-span-2">
+            <form onSubmit={handleAddEvent} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar">
+              <div className="col-span-1 md:col-span-2">
                 <label className="text-[10px] font-black text-copper-light uppercase tracking-widest block mb-2">Título da Experiência</label>
                 <input required type="text" className="w-full bg-[#151515] border border-white/10 rounded-xl p-4 text-white focus:border-copper-DEFAULT outline-none" placeholder="Ex: Baile de Máscaras IBMEC" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               </div>
@@ -299,12 +299,12 @@ const EventsCalendar: React.FC<EventsCalendarProps> = ({ isEditable }) => {
                 <input required type="number" className="w-full bg-[#151515] border border-white/10 rounded-xl p-4 text-white focus:border-copper-DEFAULT outline-none" placeholder="0" value={formData.capacity} onChange={e => setFormData({...formData, capacity: parseInt(e.target.value) || 0})} />
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-1 md:col-span-2">
                 <label className="text-[10px] font-black text-copper-light uppercase tracking-widest block mb-2">Descrição (Opcional)</label>
                 <textarea rows={3} className="w-full bg-[#151515] border border-white/10 rounded-xl p-4 text-white focus:border-copper-DEFAULT outline-none resize-none" placeholder="Detalhes importantes do evento..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
 
-              <div className="col-span-2 pt-4 flex gap-4">
+              <div className="col-span-1 md:col-span-2 pt-4 flex gap-4">
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-4 text-gray-500 font-bold hover:bg-white/5 rounded-xl transition">Cancelar</button>
                 <button 
                   type="submit" 

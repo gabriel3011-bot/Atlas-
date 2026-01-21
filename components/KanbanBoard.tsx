@@ -32,12 +32,19 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
   // Form State
   const [newTask, setNewTask] = useState({
     title: '',
-    category: allowedCategory && allowedCategory !== 'all' ? allowedCategory : 'Geral',
+    category: 'Geral', // Padrão seguro
     deadline: '',
     urgency: 'Medium' as UrgencyLevel,
     assigned_to: 'Eu',
     status: 'TODO' as TaskStatus
   });
+
+  // Atualiza a categoria padrão quando o modal abre ou role muda
+  useEffect(() => {
+     if (allowedCategory && allowedCategory !== 'all') {
+         setNewTask(prev => ({ ...prev, category: allowedCategory }));
+     }
+  }, [allowedCategory]);
 
   useEffect(() => {
     fetchTasks();
@@ -71,6 +78,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
       if (!userRole) return false;
       if (userRole === 'ADM') return true;
       if (userRole === 'MEMBER') return false; // Membros apenas visualizam
+      
+      // PERMISSÃO ATUALIZADA: Todos podem mexer no 'Geral'
+      if (taskCategory === 'Geral') return true;
+
       // Verifica se a categoria da tarefa corresponde ao cargo do usuário
       return roleToCategory[userRole] === taskCategory;
   };
@@ -78,8 +89,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     // Bloqueio extra no submit
-    if (userRole !== 'ADM' && newTask.category !== allowedCategory) {
-        alert(`Você só pode criar tarefas para a categoria: ${allowedCategory}`);
+    if (userRole !== 'ADM' && newTask.category !== allowedCategory && newTask.category !== 'Geral') {
+        alert(`Você só pode criar tarefas para a categoria: ${allowedCategory} ou Geral`);
         return;
     }
 
@@ -121,7 +132,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
     if (!taskToDelete) return;
 
     if (!canModifyTask(taskToDelete.category)) {
-        alert("Permissão negada: Você não pode excluir tarefas de outra área.");
+        alert("Permissão negada: Você não pode excluir tarefas desta área.");
         setIsConfirmDeleteOpen(null);
         return;
     }
@@ -145,9 +156,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
     const taskId = Number(draggableId);
     const task = tasks.find(t => t.id === taskId);
     
-    // Bloqueia movimento se não for da área
+    // Bloqueia movimento se não for da área ou Geral
     if (task && !canModifyTask(task.category)) {
-        alert("Permissão negada: Você só pode mover tarefas da sua área.");
+        alert("Permissão negada: Você só pode mover tarefas da sua área ou Geral.");
         return;
     }
 
@@ -221,7 +232,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                 {showHistory ? 'Registro de missões finalizadas.' : 'Gestão tática operacional.'}
                 {userRole && userRole !== 'ADM' && userRole !== 'MEMBER' && (
                     <span className="block mt-1 text-xs text-copper-light uppercase tracking-widest font-bold">
-                        Acesso de Edição: {roleToCategory[userRole]}
+                        Edição: {roleToCategory[userRole]} + Geral
                     </span>
                 )}
            </p>
@@ -333,6 +344,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                                               {isEditable ? (
                                                   <button 
                                                     onClick={() => setIsConfirmDeleteOpen(task.id)}
+                                                    onPointerDown={(e) => e.stopPropagation()}
                                                     className="absolute top-3 right-3 p-1.5 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-md"
                                                   >
                                                       <Trash2 size={14} />
@@ -410,10 +422,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                                     <option value="Logística">Logística</option>
                                 </select>
                             ) : (
-                                <div className="w-full px-4 py-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-gray-400 cursor-not-allowed flex items-center justify-between">
-                                    <span>{newTask.category}</span>
-                                    <Lock size={14} />
-                                </div>
+                                <select 
+                                    className="w-full px-4 py-3 rounded-lg bg-[#0a0a0a] border border-white/10 text-white focus:border-copper-DEFAULT outline-none appearance-none cursor-pointer" 
+                                    value={newTask.category} 
+                                    onChange={(e) => setNewTask({...newTask, category: e.target.value})}
+                                >
+                                    <option value="Geral">Geral</option>
+                                    {allowedCategory && <option value={allowedCategory}>{allowedCategory}</option>}
+                                </select>
                             )}
                         </div>
                         <div>

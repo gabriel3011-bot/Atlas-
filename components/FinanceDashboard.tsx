@@ -8,7 +8,8 @@ import {
 } from 'recharts';
 import { 
   TrendingUp, TrendingDown, Diamond, DollarSign, Users, 
-  Calculator, PieChart as PieIcon, ArrowUpRight, ArrowDownRight, Info
+  Calculator, PieChart as PieIcon, ArrowUpRight, ArrowDownRight, Info, Music, PartyPopper, Calendar, Ticket,
+  Search, Scissors, AlertTriangle, CheckCircle2, List, ArrowRight, Settings2
 } from 'lucide-react';
 
 interface FinanceDashboardProps extends ViewProps {}
@@ -16,19 +17,39 @@ interface FinanceDashboardProps extends ViewProps {}
 const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
   // Simulator State
   const [graduates, setGraduates] = useState(120);
-  const [ticketPrice, setTicketPrice] = useState(2500);
-  const [fixedCosts, setFixedCosts] = useState(80000); // Venue, Band, etc.
-  const [variableCostPerPerson, setVariableCostPerPerson] = useState(450); // Buffet, Drinks
+  const [ticketPrice, setTicketPrice] = useState(4500); // Ticket médio ajustado para o cenário
+  
+  // Convites Extras
+  const [extraInvitesQty, setExtraInvitesQty] = useState(0);
+  const [extraInvitePrice, setExtraInvitePrice] = useState(350);
+
+  // Novos Inputs de Custo
+  const [attractionBudget, setAttractionBudget] = useState(150000); // Verba Atração
+  const [preEventsCost, setPreEventsCost] = useState(40000); // 2 Pré-eventos
+  const [launchCost, setLaunchCost] = useState(25000); // Lançamento
+  const [afterCost, setAfterCost] = useState(15000); // After
 
   // Dashboard Data
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   // Simulation Logic
-  const projectedRevenue = graduates * ticketPrice;
-  const projectedVariableCosts = graduates * variableCostPerPerson;
-  const totalProjectedExpenses = fixedCosts + projectedVariableCosts;
+  const PEOPLE_PER_GRADUATE = 10; // 1 Formando + 9 Convidados
+  
+  // Público Total = (Formandos * 10) + Convites Extras
+  const totalHeadcount = (graduates * PEOPLE_PER_GRADUATE) + extraInvitesQty;
+
+  const graduatesRevenue = graduates * ticketPrice;
+  const extraRevenue = extraInvitesQty * extraInvitePrice;
+  const projectedRevenue = graduatesRevenue + extraRevenue;
+  
+  // Soma dos custos específicos (substituindo fixo/variável antigo)
+  const totalProjectedExpenses = attractionBudget + preEventsCost + launchCost + afterCost;
+  
   const projectedNet = projectedRevenue - totalProjectedExpenses;
   const profitMargin = projectedRevenue > 0 ? (projectedNet / projectedRevenue) * 100 : 0;
+  
+  // Break-even: Quantos formandos preciso para cobrir a soma dos eventos (sem contar extras, para segurança)
+  const breakEvenGraduates = Math.ceil(totalProjectedExpenses / ticketPrice);
 
   useEffect(() => {
     // Mock Real transactions for the dashboard
@@ -50,12 +71,20 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
 
   // Chart Data
   const expenseBreakdown = [
-    { name: 'Buffet', value: 65000 },
-    { name: 'Local', value: 45000 },
-    { name: 'Marketing', value: 12000 },
-    { name: 'Atrações', value: 20000 },
-    { name: 'Outros', value: 5000 },
+    { name: 'Atrações', value: attractionBudget },
+    { name: 'Pré-Eventos', value: preEventsCost },
+    { name: 'Lançamento', value: launchCost },
+    { name: 'After', value: afterCost },
+    { name: 'Outros', value: 5000 }, // Valor simbólico para o gráfico não quebrar
   ];
+
+  // Logic for Consultant Analysis
+  const costRanking = [
+      { name: 'Atrações/Show', value: attractionBudget, color: '#C5836A' },
+      { name: 'Pré-Eventos', value: preEventsCost, color: '#dfa67b' },
+      { name: 'Lançamento', value: launchCost, color: '#8C5243' },
+      { name: 'After Party', value: afterCost, color: '#EBC0A0' },
+  ].sort((a, b) => b.value - a.value);
 
   const cashFlow = [
     { month: 'Jun', income: 45000, expense: 20000 },
@@ -69,11 +98,11 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
   const COLORS = ['#C5836A', '#dfa67b', '#8C5243', '#EBC0A0', '#444'];
 
   return (
-    <div className="h-full flex flex-col space-y-10 pb-20 max-w-7xl mx-auto">
+    <div className="h-full flex flex-col space-y-10 pb-20 max-w-7xl mx-auto animate-in fade-in duration-700">
       
-      {/* 1. KPI Cards */}
+      {/* 1. KPI Cards (Actuals) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#121212] border border-white/5 rounded-2xl p-6 relative overflow-hidden group hover:border-copper-DEFAULT/30 transition-all duration-500 shadow-xl">
+        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-copper-DEFAULT/30 transition-all duration-500 shadow-xl">
            <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-copper-DEFAULT/10 rounded-lg text-copper-light">
                 <TrendingUp size={20} />
@@ -88,7 +117,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
            </div>
         </div>
 
-        <div className="bg-[#121212] border border-white/5 rounded-2xl p-6 relative overflow-hidden group hover:border-red-500/20 transition-all duration-500 shadow-xl">
+        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-copper-DEFAULT/30 transition-all duration-500 shadow-xl">
            <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-red-500/10 rounded-lg text-red-400">
                 <TrendingDown size={20} />
@@ -103,7 +132,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
            </div>
         </div>
 
-        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-copper-light/30 transition-all duration-500 shadow-2xl bg-gradient-to-br from-city-black to-zinc-900/50">
+        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-copper-DEFAULT/30 transition-all duration-500 shadow-2xl bg-gradient-to-br from-city-black to-zinc-900/50">
            <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-white/5 rounded-lg text-white">
                 <Diamond size={20} />
@@ -120,7 +149,216 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
         </div>
       </div>
 
-      {/* 2. Charts Section */}
+      {/* 2. SCENARIO SIMULATOR (Prominent Top Card) */}
+      <section className="relative">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-copper-dark via-copper-DEFAULT to-copper-dark rounded-[2.5rem] blur opacity-20"></div>
+        <div className="relative bg-[#080808] border border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl overflow-hidden">
+            
+            {/* Simulator Header */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-8 border-b border-white/5 pb-8">
+                <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gradient-to-br from-copper-dark to-black rounded-2xl border border-white/10 shadow-lg">
+                       <Calculator className="text-white" size={28} />
+                    </div>
+                    <div>
+                        <h2 className="font-serif text-3xl text-white italic tracking-tight mb-1">Simulador Tático</h2>
+                        <p className="text-gray-400 font-light text-sm max-w-md">
+                          Projeção financeira baseada em adesões e custos estimados.
+                          <span className="text-copper-light block mt-1 font-bold text-xs uppercase tracking-wider">Metodologia: 1 Formando = 10 Pessoas</span>
+                        </p>
+                    </div>
+                </div>
+
+                {/* Big Result Display */}
+                <div className={`flex flex-col items-center justify-center px-12 py-4 rounded-2xl border bg-[#121212] transition-all duration-500 ${projectedNet >= 0 ? 'border-green-500/30 shadow-[0_0_40px_-10px_rgba(34,197,94,0.1)]' : 'border-red-500/30 shadow-[0_0_40px_-10px_rgba(239,68,68,0.1)]'}`}>
+                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Resultado Projetado</span>
+                   <div className={`text-5xl font-serif font-black italic tracking-tighter tabular-nums drop-shadow-lg ${projectedNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                     {projectedNet < 0 ? '-' : '+'} R$ {Math.abs(projectedNet).toLocaleString('pt-BR')}
+                   </div>
+                   <div className="mt-2 flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${projectedNet >= 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-xs font-bold text-gray-400">{Math.round(profitMargin)}% Margem Estimada</span>
+                   </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                
+                {/* Left Column: Revenue Drivers */}
+                <div className="lg:col-span-7 space-y-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Users size={16} className="text-copper-DEFAULT" />
+                        <h3 className="text-xs font-black text-white uppercase tracking-widest">Configuração de Receita</h3>
+                    </div>
+
+                    {/* Slider */}
+                    <div className="bg-[#121212] p-6 rounded-2xl border border-white/5 group hover:border-copper-DEFAULT/20 transition-colors">
+                        <div className="flex justify-between items-end mb-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Nº de Formandos (Adesão)</label>
+                                <span className="text-[10px] text-gray-600 mt-1 block">Público Estimado: <strong className="text-white">{totalHeadcount}</strong> pessoas</span>
+                            </div>
+                            <span className="text-3xl font-serif font-bold text-white italic">{graduates} <small className="text-xs uppercase text-gray-500 tracking-tighter font-sans">alunos</small></span>
+                        </div>
+                        <input 
+                          disabled={!isEditable}
+                          type="range" 
+                          min="0" 
+                          max="250" 
+                          value={graduates} 
+                          onChange={(e) => setGraduates(Number(e.target.value))}
+                          className={`w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer ${isEditable ? 'accent-copper-DEFAULT hover:accent-copper-light' : 'accent-gray-600'} transition-all`}
+                        />
+                         <div className="flex justify-between mt-2 text-[9px] font-bold text-gray-700 uppercase tracking-widest">
+                            <span>0</span>
+                            <span>Meta: 120</span>
+                            <span>Máx: 250</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Vlr. Adesão (Ticket)</label>
+                            <div className="relative group">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={ticketPrice} 
+                                onChange={(e) => setTicketPrice(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-bold text-lg focus:border-copper-DEFAULT outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Qtd. Convites Extras</label>
+                            <div className="relative group">
+                                <Ticket size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-copper-light transition-colors" />
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={extraInvitesQty} 
+                                onChange={(e) => setExtraInvitesQty(Math.max(0, Number(e.target.value)))}
+                                className="w-full pl-10 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-bold text-lg focus:border-copper-DEFAULT outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Valor Unit. Extra</label>
+                            <div className="relative group">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={extraInvitePrice} 
+                                onChange={(e) => setExtraInvitePrice(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-bold text-lg focus:border-copper-DEFAULT outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+                         <div className="space-y-2">
+                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ponto de Equilíbrio</label>
+                             <div className="w-full h-[60px] px-4 bg-white/5 border border-dashed border-white/10 rounded-xl flex items-center justify-between">
+                                <span className="text-gray-500 text-xs font-bold uppercase">Break-even</span>
+                                <span className="text-white font-serif font-bold italic text-lg">
+                                {breakEvenGraduates} <small className="text-[10px] text-gray-500 font-sans uppercase">alunos</small>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Expense Drivers */}
+                <div className="lg:col-span-5 space-y-8 lg:border-l lg:border-white/5 lg:pl-12">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Settings2 size={16} className="text-copper-DEFAULT" />
+                        <h3 className="text-xs font-black text-white uppercase tracking-widest">Estrutura de Custos</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="flex justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>Verba Atrações</span>
+                                <span className="text-copper-light">Principal</span>
+                            </label>
+                            <div className="relative group">
+                                <Music size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-copper-dark group-focus-within:text-copper-light transition-colors" />
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={attractionBudget} 
+                                onChange={(e) => setAttractionBudget(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-copper-DEFAULT/30 rounded-xl text-white font-medium focus:border-copper-DEFAULT outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Pré-Eventos (Total)</label>
+                            <div className="relative group">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-white transition-colors">R$</span>
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={preEventsCost} 
+                                onChange={(e) => setPreEventsCost(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-white/10 rounded-xl text-white font-medium focus:border-white/30 outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Festa de Lançamento</label>
+                            <div className="relative group">
+                                <PartyPopper size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors" />
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={launchCost} 
+                                onChange={(e) => setLaunchCost(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-white/10 rounded-xl text-white font-medium focus:border-white/30 outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">After Party</label>
+                            <div className="relative group">
+                                <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-white transition-colors" />
+                                <input 
+                                disabled={!isEditable}
+                                type="number" 
+                                value={afterCost} 
+                                onChange={(e) => setAfterCost(Number(e.target.value))}
+                                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-white/10 rounded-xl text-white font-medium focus:border-white/30 outline-none transition shadow-inner"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Summary Strip */}
+            <div className="mt-10 pt-6 border-t border-white/5 flex flex-wrap justify-between gap-6 opacity-60 hover:opacity-100 transition-opacity">
+                 <div className="flex gap-2 items-center">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                    <span className="text-[10px] uppercase font-bold text-gray-400">Receita Total: <span className="text-white">R$ {projectedRevenue.toLocaleString('pt-BR')}</span></span>
+                 </div>
+                 <div className="flex gap-2 items-center">
+                    <div className="w-2 h-2 bg-copper-DEFAULT rounded-full"></div>
+                    <span className="text-[10px] uppercase font-bold text-gray-400">Despesa Total: <span className="text-white">R$ {totalProjectedExpenses.toLocaleString('pt-BR')}</span></span>
+                 </div>
+                 {extraRevenue > 0 && (
+                    <div className="flex gap-2 items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-[10px] uppercase font-bold text-gray-400">Receita Extra: <span className="text-green-400">R$ {extraRevenue.toLocaleString('pt-BR')}</span></span>
+                    </div>
+                 )}
+            </div>
+        </div>
+      </section>
+
+      {/* 3. Charts Section (Trends) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* Cash Flow Chart */}
         <div className="lg:col-span-3 bg-[#121212] rounded-2xl border border-white/5 p-8 shadow-xl">
@@ -168,7 +406,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
         <div className="lg:col-span-2 bg-[#121212] rounded-2xl border border-white/5 p-8 shadow-xl relative overflow-hidden">
             <h3 className="font-serif text-xl text-white italic mb-8 flex items-center gap-3">
               <PieIcon size={18} className="text-copper-light" />
-              Alocação de Verba
+              Simulação de Custos
             </h3>
             <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -196,151 +434,194 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
             </div>
             {/* Center Label */}
             <div className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-               <span className="block text-[10px] uppercase font-bold text-gray-500 tracking-widest">Gasto Total</span>
-               <span className="text-xl font-bold text-white">R$ 147k</span>
+               <span className="block text-[10px] uppercase font-bold text-gray-500 tracking-widest">Investimento</span>
+               <span className="text-lg font-bold text-white">R$ {totalProjectedExpenses.toLocaleString('pt-BR', { notation: "compact" })}</span>
             </div>
         </div>
       </div>
 
-      {/* 3. SCENARIO SIMULATOR (Urban Copper Style) */}
-      <section className="relative mt-12">
-        <div className="absolute -inset-1 bg-gradient-to-r from-copper-dark/20 via-copper-light/10 to-transparent rounded-[2.5rem] blur-xl opacity-50"></div>
-        <div className="relative bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-                <div>
-                   <div className="flex items-center gap-3 mb-2">
-                       <Calculator className="text-copper-light" size={24} />
-                       <h2 className="font-serif text-3xl text-white italic tracking-tight">Simulador de Viabilidade Tática</h2>
-                   </div>
-                   <p className="text-gray-400 font-light max-w-xl">
-                     Ajuste as variáveis para prever o impacto financeiro baseado na adesão da turma.
-                     {!isEditable && <span className="text-red-400 block mt-1 text-xs font-bold uppercase tracking-widest">Modo Leitura (Edição bloqueada)</span>}
-                   </p>
+      {/* 4. CONSULTANT ANALYSIS SECTION */}
+      <div className="mt-12">
+        <div className="flex items-center gap-3 mb-8">
+           <div className="p-3 bg-white/5 rounded-2xl">
+              <Search className="text-copper-light" size={24} />
+           </div>
+           <div>
+              <h2 className="font-serif text-2xl text-white italic">Raio-X das Despesas (Consultoria)</h2>
+              <p className="text-gray-500 text-sm font-light">Análise detalhada do fluxo de caixa e oportunidades.</p>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Status Geral */}
+            <div className="lg:col-span-3 bg-[#121212] border border-white/10 rounded-2xl p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex-1 w-full">
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Grande Total (Status Geral)</span>
+                    <div className="flex items-end gap-2">
+                        <span className={`text-5xl font-serif font-black italic tracking-tighter ${projectedNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                           {projectedNet >= 0 ? 'SUPERÁVIT' : 'DÉFICIT'}
+                        </span>
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${projectedNet >= 0 ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                           {projectedNet >= 0 ? 'Caixa Positivo' : 'Atenção Necessária'}
+                        </div>
+                    </div>
+                    <p className="text-gray-400 text-sm mt-3 leading-relaxed max-w-2xl">
+                        O custo total estimado da festa é de <strong className="text-white">R$ {totalProjectedExpenses.toLocaleString('pt-BR')}</strong>. 
+                        Com a receita projetada de <strong className="text-white">R$ {projectedRevenue.toLocaleString('pt-BR')}</strong> (considerando {graduates} formandos), 
+                        o caixa atual {projectedNet >= 0 ? 'cobre todas as despesas e gera uma reserva.' : 'não é suficiente para cobrir os custos planejados.'}
+                    </p>
                 </div>
+                <div className="w-full md:w-auto min-w-[250px] p-6 bg-white/5 rounded-xl border border-white/5 text-center">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Saldo Final Projetado</span>
+                    <div className={`text-3xl font-serif font-bold italic mt-2 ${projectedNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                       {projectedNet < 0 ? '-' : '+'} R$ {Math.abs(projectedNet).toLocaleString('pt-BR')}
+                    </div>
+                </div>
+            </div>
+
+            {/* Ranking de Gastos */}
+            <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
+               <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-serif text-lg text-white italic">Ranking de Custos</h3>
+                  <List size={16} className="text-gray-600" />
+               </div>
+               <div className="space-y-4">
+                  {costRanking.map((item, idx) => {
+                      const percent = Math.round((item.value / totalProjectedExpenses) * 100) || 0;
+                      return (
+                          <div key={item.name} className="group">
+                              <div className="flex justify-between items-center mb-1">
+                                  <div className="flex items-center gap-3">
+                                      <span className="text-[10px] font-black text-gray-600 w-4">{idx + 1}.</span>
+                                      <span className="text-sm text-gray-300 font-medium group-hover:text-white transition">{item.name}</span>
+                                  </div>
+                                  <span className="text-xs font-bold text-gray-400">{percent}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full rounded-full transition-all duration-1000" 
+                                    style={{ width: `${percent}%`, backgroundColor: item.color }}
+                                  ></div>
+                              </div>
+                              <div className="text-right mt-1">
+                                  <span className="text-[10px] text-gray-600">R$ {item.value.toLocaleString('pt-BR')}</span>
+                              </div>
+                          </div>
+                      )
+                  })}
+               </div>
+            </div>
+
+            {/* Zoom em Pré-Eventos */}
+            <div className="lg:col-span-2 bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-copper-DEFAULT/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                 
-                <div className={`px-10 py-6 rounded-2xl border flex flex-col items-center transition-all duration-700 ${projectedNet >= 0 ? 'bg-green-500/5 border-green-500/20 shadow-[0_0_30px_rgba(74,222,128,0.05)]' : 'bg-red-500/5 border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.05)]'}`}>
-                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Resultado Projetado</span>
-                   <div className={`text-4xl font-serif font-black italic tracking-tighter tabular-nums ${projectedNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                     {projectedNet < 0 ? '-' : '+'} R$ {Math.abs(projectedNet).toLocaleString('pt-BR')}
-                   </div>
-                   <div className="mt-3 flex items-center gap-4 w-full">
-                      <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                         <div 
-                           className={`h-full transition-all duration-1000 ${projectedNet >= 0 ? 'bg-green-500 shadow-[0_0_10px_#4ade80]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} 
-                           style={{ width: `${Math.min(Math.max(profitMargin + 50, 0), 100)}%` }}
-                         />
+                <div className="relative z-10">
+                   <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-copper-DEFAULT/10 rounded-lg text-copper-light">
+                          <Search size={18} />
                       </div>
-                      <span className="text-[10px] font-bold text-gray-400">{Math.round(profitMargin)}% Margem</span>
+                      <h3 className="font-serif text-lg text-white italic">Raio-X: Pré-Eventos (R$ {preEventsCost.toLocaleString('pt-BR')})</h3>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                          <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Eventos Realizados</h4>
+                          <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                             <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-copper-light"></div>
+                                <span className="text-sm text-gray-300">Churrasco 500 Dias</span>
+                             </div>
+                             <span className="text-sm font-bold text-white">~R$ {(preEventsCost * 0.4).toLocaleString('pt-BR')}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                             <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-copper-dark"></div>
+                                <span className="text-sm text-gray-300">Cervejada Meio Médico</span>
+                             </div>
+                             <span className="text-sm font-bold text-white">~R$ {(preEventsCost * 0.6).toLocaleString('pt-BR')}</span>
+                          </div>
+                      </div>
+
+                      <div className="space-y-4">
+                          <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Maiores Ofensores de Custo</h4>
+                          <div className="space-y-3">
+                             <div>
+                                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                   <span>Open Bar (Bebidas)</span>
+                                   <span className="text-red-400 font-bold">Alto Impacto</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-800 rounded-full"><div className="w-[80%] h-full bg-red-500/50 rounded-full"></div></div>
+                             </div>
+                             <div>
+                                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                   <span>Locação de Espaço</span>
+                                   <span className="text-yellow-500 font-bold">Médio Impacto</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-800 rounded-full"><div className="w-[50%] h-full bg-yellow-500/50 rounded-full"></div></div>
+                             </div>
+                             <div>
+                                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                   <span>Som & Iluminação</span>
+                                   <span className="text-green-500 font-bold">Baixo Impacto</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-800 rounded-full"><div className="w-[30%] h-full bg-green-500/50 rounded-full"></div></div>
+                             </div>
+                          </div>
+                      </div>
                    </div>
                 </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-                
-                {/* Formandos Slider */}
-                <div className="col-span-1 lg:col-span-2 space-y-8 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
-                    <div className="flex justify-between items-end">
-                        <div className="flex items-center gap-3">
-                            <Users className="text-copper-DEFAULT" size={18} />
-                            <label className="text-xs font-black text-gray-300 uppercase tracking-widest">Nº de Formandos (Adesão)</label>
+            
+            {/* Plano de Redução */}
+            <div className="lg:col-span-3">
+                <h3 className="font-serif text-lg text-white italic mb-6 flex items-center gap-2">
+                    <Scissors size={18} className="text-copper-light" />
+                    Plano de Redução de Custos
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 hover:border-green-500/30 transition-all group">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-2 bg-green-500/10 text-green-400 rounded-lg group-hover:bg-green-500/20 transition">
+                                <CheckCircle2 size={20} />
+                            </div>
+                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Opção 1</span>
                         </div>
-                        <span className="text-3xl font-serif font-bold text-white italic">{graduates} <small className="text-xs uppercase text-gray-500 tracking-tighter">estudantes</small></span>
-                    </div>
-                    <div className="relative pt-2">
-                        <input 
-                          disabled={!isEditable}
-                          type="range" 
-                          min="0" 
-                          max="250" 
-                          value={graduates} 
-                          onChange={(e) => setGraduates(Number(e.target.value))}
-                          className={`w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer ${isEditable ? 'accent-copper-DEFAULT hover:accent-copper-light' : 'accent-gray-600'} transition-all`}
-                        />
-                        <div className="flex justify-between mt-3 text-[9px] font-bold text-gray-600 uppercase tracking-widest">
-                            <span>0</span>
-                            <span>125</span>
-                            <span>250 Máx</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Numeric Inputs Grid */}
-                <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Vlr. Adesão (Ticket)</label>
-                        <div className="relative group">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
-                            <input 
-                              disabled={!isEditable}
-                              type="number" 
-                              value={ticketPrice} 
-                              onChange={(e) => setTicketPrice(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
-                            />
-                        </div>
+                        <h4 className="text-white font-bold mb-2">Renegociar Open Bar</h4>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                            Substituir marcas premium por intermediárias nos pré-eventos restantes pode gerar uma economia de até <strong className="text-green-400">15%</strong> na categoria.
+                        </p>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Custo Fixo Total</label>
-                        <div className="relative group">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
-                            <input 
-                              disabled={!isEditable}
-                              type="number" 
-                              value={fixedCosts} 
-                              onChange={(e) => setFixedCosts(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
-                            />
+                    <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 hover:border-yellow-500/30 transition-all group">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-2 bg-yellow-500/10 text-yellow-400 rounded-lg group-hover:bg-yellow-500/20 transition">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Opção 2</span>
                         </div>
+                        <h4 className="text-white font-bold mb-2">Convites Digitais</h4>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                            Eliminar convites físicos e brindes de papelaria para os pré-eventos. Foco 100% digital reduz custo operacional em <strong className="text-yellow-400">5%</strong>.
+                        </p>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Custo Var. (Por Pessoa)</label>
-                        <div className="relative group">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold group-focus-within:text-copper-light transition-colors">R$</span>
-                            <input 
-                              disabled={!isEditable}
-                              type="number" 
-                              value={variableCostPerPerson} 
-                              onChange={(e) => setVariableCostPerPerson(Number(e.target.value))}
-                              className="w-full pl-12 pr-4 py-4 bg-[#121212] border border-white/10 rounded-xl text-white font-serif text-lg focus:border-copper-DEFAULT focus:ring-1 focus:ring-copper-DEFAULT outline-none transition shadow-inner disabled:opacity-50"
-                            />
+                    <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 hover:border-copper-DEFAULT/30 transition-all group">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-2 bg-copper-DEFAULT/10 text-copper-light rounded-lg group-hover:bg-copper-DEFAULT/20 transition">
+                                <ArrowRight size={20} />
+                            </div>
+                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Opção 3</span>
                         </div>
+                        <h4 className="text-white font-bold mb-2">Local do After Party</h4>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                            Mover o After Party para um espaço da universidade ou local parceiro com isenção de aluguel. Economia projetada de <strong className="text-copper-light">30%</strong> neste item.
+                        </p>
                     </div>
-
-                    <div className="space-y-3">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Ponto de Equilíbrio</label>
-                        <div className="w-full py-4 px-6 bg-white/5 border border-dashed border-white/10 rounded-xl flex items-center justify-between">
-                            <span className="text-gray-500 text-xs font-bold uppercase">Break-even</span>
-                            <span className="text-white font-serif font-bold italic">
-                              {Math.ceil(fixedCosts / (ticketPrice - variableCostPerPerson))} <small className="text-[10px] text-gray-500 font-sans uppercase">alunos</small>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-12 pt-10 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div>
-                   <span className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] block mb-1">Receita Bruta</span>
-                   <span className="text-xl font-serif text-white italic">R$ {projectedRevenue.toLocaleString('pt-BR')}</span>
-                </div>
-                <div>
-                   <span className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] block mb-1">Custo Fixo</span>
-                   <span className="text-xl font-serif text-white italic">R$ {fixedCosts.toLocaleString('pt-BR')}</span>
-                </div>
-                <div>
-                   <span className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] block mb-1">Custo Variável Total</span>
-                   <span className="text-xl font-serif text-white italic">R$ {projectedVariableCosts.toLocaleString('pt-BR')}</span>
-                </div>
-                <div>
-                   <span className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] block mb-1">Despesa Total</span>
-                   <span className="text-xl font-serif text-white italic">R$ {totalProjectedExpenses.toLocaleString('pt-BR')}</span>
                 </div>
             </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };

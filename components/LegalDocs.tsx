@@ -84,8 +84,9 @@ const LegalDocs: React.FC<LegalDocsProps> = ({ isEditable }) => {
   };
 
   return (
-    <div className="h-full max-w-5xl">
-      <div className="flex justify-between items-center mb-8">
+    <div className="h-full max-w-5xl mx-auto pb-20">
+      {/* Header Responsivo */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h2 className="font-serif text-3xl text-white mb-2">Contratos</h2>
           <p className="text-gray-400 font-light">Gestão de documentos legais e assinaturas.</p>
@@ -93,14 +94,21 @@ const LegalDocs: React.FC<LegalDocsProps> = ({ isEditable }) => {
         {isEditable && (
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-copper-DEFAULT/20 transition hover:-translate-y-0.5 flex items-center gap-2"
+            className="w-full md:w-auto bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-copper-DEFAULT/20 transition hover:-translate-y-0.5 flex items-center justify-center gap-2"
           >
             <Plus size={18} /> Novo Contrato
           </button>
         )}
       </div>
       
-      <div className="bg-[#121212] rounded-xl shadow-lg border border-white/5 overflow-hidden">
+      {/* 
+         LAYOUT HÍBRIDO: 
+         1. Tabela para Desktop (hidden em mobile, block em md)
+         2. Cards para Mobile (block em mobile, hidden em md)
+      */}
+
+      {/* --- DESKTOP TABLE VIEW --- */}
+      <div className="hidden md:block bg-[#121212] rounded-xl shadow-lg border border-white/5 overflow-hidden">
           <table className="w-full text-left border-collapse">
               <thead className="bg-white/[0.02] text-gray-500 text-xs uppercase tracking-wider font-bold">
                   <tr>
@@ -145,10 +153,52 @@ const LegalDocs: React.FC<LegalDocsProps> = ({ isEditable }) => {
                   ))}
               </tbody>
           </table>
-          {docs.length === 0 && (
-              <div className="p-12 text-center text-gray-600 font-serif italic">Nenhum documento encontrado.</div>
-          )}
       </div>
+
+      {/* --- MOBILE CARD VIEW --- */}
+      <div className="md:hidden space-y-4">
+        {docs.map((doc) => (
+          <div key={doc.id} className="bg-[#121212] rounded-xl border border-white/5 p-5 flex flex-col gap-4">
+             {/* Header do Card */}
+             <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
+                      <FileText size={20} />
+                   </div>
+                   <div>
+                      <h4 className="font-medium text-gray-200 text-sm leading-tight">{doc.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1">{doc.related_party}</p>
+                   </div>
+                </div>
+             </div>
+
+             {/* Footer do Card */}
+             <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                <div>
+                   {doc.status === 'signed' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wide">
+                          <CheckCircle size={10}/> Assinado
+                      </span>
+                  ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 uppercase tracking-wide">
+                          <Clock size={10}/> Pendente
+                      </span>
+                  )}
+                </div>
+                <button 
+                   onClick={() => handleViewFile(doc.file_url)}
+                   className="flex items-center gap-2 text-xs font-bold text-copper-light bg-white/5 px-4 py-2 rounded-lg hover:bg-white/10 transition"
+                >
+                   <Download size={14} /> Abrir
+                </button>
+             </div>
+          </div>
+        ))}
+      </div>
+
+      {docs.length === 0 && (
+          <div className="p-12 text-center text-gray-600 font-serif italic border-2 border-dashed border-white/5 rounded-xl mt-4">Nenhum documento encontrado.</div>
+      )}
 
       {/* Modal de Upload */}
       {isModalOpen && (
