@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import KanbanBoard from './components/KanbanBoard';
@@ -21,9 +22,10 @@ const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('MEMBER');
+  
+  // Agora suporta múltiplos cargos
+  const [userRoles, setUserRoles] = useState<UserRole[]>(['MEMBER']);
 
-  // Lógica de Fallback Atualizada para os Novos Cargos
   const determineRoleFromEmail = (email: string): UserRole => {
     const normalizedEmail = email.toLowerCase();
     const admins = ['admin@atlas.com', 'presidente@atlas.com', 'vice@atlas.com', 'dev@atlas.com'];
@@ -39,15 +41,16 @@ const App: React.FC = () => {
 
   const syncUserRole = async (user: any) => {
     try {
+      // Busca TODOS os cargos do usuário (agora que pode ter múltiplos)
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-      if (data && data.role) {
-        console.log("Cargo carregado do Supabase:", data.role);
-        setUserRole(data.role as UserRole);
+      if (data && data.length > 0) {
+        const roles = data.map(r => r.role as UserRole);
+        console.log("Cargos carregados do Supabase:", roles);
+        setUserRoles(roles);
       } else {
         const initialRole = determineRoleFromEmail(user.email || '');
         console.log("Primeiro acesso. Definindo cargo inicial:", initialRole);
@@ -56,11 +59,11 @@ const App: React.FC = () => {
           { user_id: user.id, role: initialRole }
         ]);
         
-        setUserRole(initialRole);
+        setUserRoles([initialRole]);
       }
     } catch (err) {
       console.error("Erro ao sincronizar cargo:", err);
-      setUserRole(determineRoleFromEmail(user.email || ''));
+      setUserRoles([determineRoleFromEmail(user.email || '')]);
     }
   };
 
@@ -83,31 +86,32 @@ const App: React.FC = () => {
       return () => subscription.unsubscribe();
     } else {
       setAuthLoading(false);
-      setUserRole('ADM'); // Fallback dev local
+      setUserRoles(['ADM']); // Fallback dev local
     }
   }, []);
 
   // Lógica de Permissões (Quem pode EDITAR o quê)
   const checkPermission = (view: View): boolean => {
     // 1. ADM pode tudo
-    if (userRole === 'ADM') return true;
+    if (userRoles.includes('ADM')) return true;
 
     // 2. Todos podem jogar
     if (view === View.GAME) return true;
 
-    // 3. Regras específicas por cargo
+    // 3. Todos podem ver e EDITAR membros (Solicitação do Usuário)
+    if (view === View.MEMBERS) return true;
+
+    // 4. Regras específicas por cargo (Verifica se possui o cargo na lista)
     switch (view) {
-      case View.FINANCE: return userRole === 'FINANCEIRO';
-      case View.MARKETING: return userRole === 'MARKETING';
-      case View.EVENTS: return userRole === 'EVENTOS';
-      case View.LEGAL: return userRole === 'JURIDICO';
+      case View.FINANCE: return userRoles.includes('FINANCEIRO');
+      case View.MARKETING: return userRoles.includes('MARKETING');
+      case View.EVENTS: return userRoles.includes('EVENTOS');
+      case View.LEGAL: return userRoles.includes('JURIDICO');
       
-      // No Dashboard (Kanban), todos "podem editar" (para entrar na tela), 
-      // mas o KanbanBoard.tsx vai restringir o que exatamente eles podem mover/criar.
+      // Dashboard: Todos acessam, mas KanbanBoard filtra edições internamente
       case View.DASHBOARD: return true; 
       
       case View.VOTING: return false; // Apenas admin cria votações
-      case View.MEMBERS: return false; // Apenas admin gerencia membros
       default: return false;
     }
   };
@@ -115,9 +119,9 @@ const App: React.FC = () => {
   const isEditable = checkPermission(currentView);
 
   const renderContent = () => {
-    // Passamos userRole para o Kanban para controle granular
+    // Passamos userRoles para o Kanban para controle granular de múltiplos cargos
     switch (currentView) {
-      case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} userRole={userRole} />;
+      case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} userRoles={userRoles} />;
       case View.FINANCE: return <FinanceDashboard isEditable={isEditable} />;
       case View.EVENTS: return <EventsCalendar isEditable={isEditable} />;
       case View.MARKETING: return <MarketingGrid isEditable={isEditable} />;
@@ -162,7 +166,7 @@ const App: React.FC = () => {
             </div>
           </div>
         );
-      default: return <KanbanBoard isEditable={isEditable} userRole={userRole} />;
+      default: return <KanbanBoard isEditable={isEditable} userRoles={userRoles} />;
     }
   };
 

@@ -4,14 +4,36 @@
 -- ==========================================
 
 -- 1. Tabela de Cargos e Permissões
--- Cria a tabela se não existir
 CREATE TABLE IF NOT EXISTS public.user_roles (
-    user_id uuid REFERENCES auth.users NOT NULL PRIMARY KEY,
+    user_id uuid REFERENCES auth.users NOT NULL,
     role text NOT NULL,
     created_at timestamptz DEFAULT now()
+    -- A Primary Key será definida/atualizada no bloco abaixo
 );
 
--- ATUALIZAÇÃO SEGURA DE CARGOS (Migração para Português):
+-- MIGRACAO PARA SUPORTAR MULTIPLOS CARGOS
+-- Transforma a PK em composta (user_id, role) para permitir vários cargos
+DO $$ 
+BEGIN
+    -- Se existir uma PK antiga simples (apenas user_id), removemos
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_pkey') THEN
+        ALTER TABLE public.user_roles DROP CONSTRAINT user_roles_pkey;
+    END IF;
+    
+    -- Adiciona a nova PK composta se não existir
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_pkey_composite') THEN
+         -- Tenta adicionar com nome específico para evitar conflitos futuros
+         ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_pkey_composite PRIMARY KEY (user_id, role);
+    END IF;
+EXCEPTION
+    WHEN others THEN 
+        -- Fallback seguro: se der erro, tenta adicionar a PK padrão composta
+        BEGIN
+            ALTER TABLE public.user_roles ADD PRIMARY KEY (user_id, role);
+        EXCEPTION WHEN others THEN NULL; END;
+END $$;
+
+-- ATUALIZAÇÃO SEGURA DE CARGOS (Check Constraints):
 DO $$ 
 BEGIN
     ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
@@ -137,42 +159,52 @@ CREATE TABLE IF NOT EXISTS public.app_feedback (
 
 DO $$ 
 BEGIN
+    -- TASKS
     ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Tasks" ON public.tasks;
     CREATE POLICY "Acesso total Tasks" ON public.tasks FOR ALL TO authenticated USING (true);
 
+    -- TRANSACTIONS
     ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Transactions" ON public.transactions;
     CREATE POLICY "Acesso total Transactions" ON public.transactions FOR ALL TO authenticated USING (true);
 
+    -- EVENTS
     ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Events" ON public.events;
     CREATE POLICY "Acesso total Events" ON public.events FOR ALL TO authenticated USING (true);
 
+    -- MARKETING
     ALTER TABLE public.marketing_posts ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Marketing" ON public.marketing_posts;
     CREATE POLICY "Acesso total Marketing" ON public.marketing_posts FOR ALL TO authenticated USING (true);
 
+    -- DOCUMENTS
     ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Documents" ON public.documents;
     CREATE POLICY "Acesso total Documents" ON public.documents FOR ALL TO authenticated USING (true);
 
+    -- MEMBERS (Aqui garantimos que TODOS podem criar/editar)
     ALTER TABLE public.committee_members ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Members" ON public.committee_members;
     CREATE POLICY "Acesso total Members" ON public.committee_members FOR ALL TO authenticated USING (true);
 
+    -- POLLS
     ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Polls" ON public.polls;
     CREATE POLICY "Acesso total Polls" ON public.polls FOR ALL TO authenticated USING (true);
 
+    -- VOTES
     ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Votes" ON public.votes;
     CREATE POLICY "Acesso total Votes" ON public.votes FOR ALL TO authenticated USING (true);
 
+    -- SCORES
     ALTER TABLE public.game_scores ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Scores" ON public.game_scores;
     CREATE POLICY "Acesso total Scores" ON public.game_scores FOR ALL TO authenticated USING (true);
 
+    -- FEEDBACK
     ALTER TABLE public.app_feedback ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "Acesso total Feedback" ON public.app_feedback;
     CREATE POLICY "Acesso total Feedback" ON public.app_feedback FOR ALL TO authenticated USING (true);
@@ -181,7 +213,6 @@ END $$;
 -- ==========================================
 -- STORAGE (Arquivos)
 -- ==========================================
--- Adicionando 'marketing-images'
 INSERT INTO storage.buckets (id, name, public) 
 VALUES 
   ('member-avatars', 'member-avatars', true),
@@ -189,7 +220,6 @@ VALUES
   ('marketing-images', 'marketing-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Configura políticas de upload e download
 DO $$
 BEGIN
     -- Avatars

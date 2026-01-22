@@ -10,7 +10,7 @@ export type UserRole = 'ADM' | 'FINANCEIRO' | 'MARKETING' | 'EVENTOS' | 'JURIDIC
 
 export interface ViewProps {
   isEditable: boolean;
-  userRole?: UserRole; // Adicionado para controle granular no Kanban
+  userRoles?: UserRole[]; // Alterado de userRole?: UserRole para array
 }
 
 export interface Task {

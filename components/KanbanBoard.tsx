@@ -6,10 +6,10 @@ import { Plus, Calendar, X, Check, GripVertical, Flag, Loader2, Trash2, History,
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface KanbanBoardProps extends ViewProps {
-  userRole?: UserRole; // Recebe o cargo para validar ações granulares
+  userRoles?: UserRole[]; // Recebe a LISTA de cargos
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRoles = [] }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState<number | null>(null);
@@ -26,8 +26,17 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
       'ADM': 'all'
   };
 
-  // Determina categoria permitida para o usuário atual
-  const allowedCategory = userRole ? roleToCategory[userRole] : undefined;
+  // Determina quais categorias o usuário pode gerenciar com base em seus múltiplos cargos
+  const isAdmin = userRoles.includes('ADM');
+  const allowedCategories: string[] = useMemo(() => {
+    if (isAdmin) return ['all'];
+    const categories: string[] = [];
+    userRoles.forEach(role => {
+        const cat = roleToCategory[role];
+        if (cat) categories.push(cat);
+    });
+    return categories;
+  }, [userRoles]);
 
   // Form State
   const [newTask, setNewTask] = useState({
@@ -39,12 +48,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
     status: 'TODO' as TaskStatus
   });
 
-  // Atualiza a categoria padrão quando o modal abre ou role muda
+  // Atualiza a categoria padrão quando o modal abre (pega a primeira disponível se não for ADM)
   useEffect(() => {
-     if (allowedCategory && allowedCategory !== 'all') {
-         setNewTask(prev => ({ ...prev, category: allowedCategory }));
+     if (!isAdmin && allowedCategories.length > 0) {
+         setNewTask(prev => ({ ...prev, category: allowedCategories[0] }));
      }
-  }, [allowedCategory]);
+  }, [allowedCategories, isAdmin]);
 
   useEffect(() => {
     fetchTasks();
@@ -75,22 +84,28 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
 
   // Verifica se o usuário tem permissão para editar ESTA tarefa específica
   const canModifyTask = (taskCategory: string): boolean => {
-      if (!userRole) return false;
-      if (userRole === 'ADM') return true;
-      if (userRole === 'MEMBER') return false; // Membros apenas visualizam
+      if (userRoles.length === 0) return false; // Sem cargo
+      if (isAdmin) return true;
+      if (userRoles.includes('MEMBER')) {
+          // Membros comuns só podem mexer no Geral? Ou nada? 
+          // O código original bloqueava MEMBER. Mantendo bloqueio exceto para visualizar.
+          // Se quiser liberar MEMBER para 'Geral', descomente a linha abaixo.
+          // if (taskCategory === 'Geral') return true;
+          return false;
+      }
       
-      // PERMISSÃO ATUALIZADA: Todos podem mexer no 'Geral'
+      // PERMISSÃO: Todos podem mexer no 'Geral' (exceto MEMBER puro se a regra acima bloquear)
       if (taskCategory === 'Geral') return true;
 
-      // Verifica se a categoria da tarefa corresponde ao cargo do usuário
-      return roleToCategory[userRole] === taskCategory;
+      // Verifica se alguma das categorias permitidas do usuário bate com a da tarefa
+      return allowedCategories.includes(taskCategory);
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     // Bloqueio extra no submit
-    if (userRole !== 'ADM' && newTask.category !== allowedCategory && newTask.category !== 'Geral') {
-        alert(`Você só pode criar tarefas para a categoria: ${allowedCategory} ou Geral`);
+    if (!isAdmin && newTask.category !== 'Geral' && !allowedCategories.includes(newTask.category)) {
+        alert(`Você só pode criar tarefas para suas áreas: ${allowedCategories.join(', ')} ou Geral`);
         return;
     }
 
@@ -117,9 +132,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
     }
 
     setIsModalOpen(false);
+    // Reseta para uma categoria válida
+    const defaultCat = !isAdmin && allowedCategories.length > 0 ? allowedCategories[0] : 'Geral';
     setNewTask({ 
         title: '', 
-        category: allowedCategory && allowedCategory !== 'all' ? allowedCategory : 'Geral', 
+        category: defaultCat, 
         deadline: '', 
         urgency: 'Medium', 
         assigned_to: 'Eu', 
@@ -221,6 +238,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
       return colors[index];
   };
 
+  const isMemberOnly = userRoles.includes('MEMBER') && userRoles.length === 1;
+
   return (
     <div className="h-full flex flex-col relative pb-10">
       <div className="flex justify-between items-end mb-10">
@@ -230,9 +249,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
            </h2>
            <p className="text-gray-400 font-light max-w-md">
                 {showHistory ? 'Registro de missões finalizadas.' : 'Gestão tática operacional.'}
-                {userRole && userRole !== 'ADM' && userRole !== 'MEMBER' && (
+                {!isAdmin && !isMemberOnly && (
                     <span className="block mt-1 text-xs text-copper-light uppercase tracking-widest font-bold">
-                        Edição: {roleToCategory[userRole]} + Geral
+                        Edição: {allowedCategories.join(', ')} + Geral
                     </span>
                 )}
            </p>
@@ -251,7 +270,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                 {showHistory ? 'Voltar' : 'Histórico'}
             </button>
 
-            {!showHistory && userRole !== 'MEMBER' && (
+            {!showHistory && !isMemberOnly && (
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
@@ -314,7 +333,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                        </span>
                     </div>
                     
-                    <Droppable droppableId={col.id} isDropDisabled={userRole === 'MEMBER'}>
+                    <Droppable droppableId={col.id} isDropDisabled={isMemberOnly}>
                       {(provided, snapshot) => (
                           <div 
                               {...provided.droppableProps}
@@ -412,7 +431,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-copper-light uppercase tracking-wider mb-2">Categoria</label>
-                            {userRole === 'ADM' ? (
+                            {isAdmin ? (
                                 <select className="w-full px-4 py-3 rounded-lg bg-[#0a0a0a] border border-white/10 text-white focus:border-copper-DEFAULT outline-none appearance-none cursor-pointer" value={newTask.category} onChange={(e) => setNewTask({...newTask, category: e.target.value})}>
                                     <option value="Geral">Geral</option>
                                     <option value="Financeiro">Financeiro</option>
@@ -428,7 +447,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isEditable, userRole }) => {
                                     onChange={(e) => setNewTask({...newTask, category: e.target.value})}
                                 >
                                     <option value="Geral">Geral</option>
-                                    {allowedCategory && <option value={allowedCategory}>{allowedCategory}</option>}
+                                    {allowedCategories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
                                 </select>
                             )}
                         </div>
