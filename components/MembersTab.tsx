@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { Member, ViewProps } from '../types';
-import { Plus, MessageCircle, X, Check, User, Phone, MapPin, FileText, Camera, Loader2, Trash2, AlertTriangle, Save, PenLine } from 'lucide-react';
+import { Plus, MessageCircle, X, Check, User, Phone, MapPin, FileText, Camera, Loader2, Trash2, AlertTriangle, Save, PenLine, Download } from 'lucide-react';
 
 interface MembersTabProps extends ViewProps {}
 
@@ -181,6 +181,24 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
       }
   };
 
+  const downloadMembersList = () => {
+    if (members.length === 0) {
+      alert("Nenhum membro para baixar.");
+      return;
+    }
+
+    const content = members.map(m => `Nome: ${m.name}\nCPF: ${m.cpf || 'Não informado'}\nCargo: ${m.role}\nWhatsApp: ${m.phone || 'Não informado'}\n--------------------------`).join('\n\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lista_membros_atlas_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-10">
@@ -188,14 +206,23 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
            <h2 className="font-serif text-3xl text-white mb-2 tracking-tight italic">Comissão IBMEC 2026</h2>
            <p className="text-gray-400 font-light text-sm">Os pilares da organização Atlas.</p>
         </div>
-        {isEditable && (
+        <div className="flex gap-3">
           <button 
-            onClick={openNewMemberModal}
-            className="bg-copper-gradient text-black px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
+            onClick={downloadMembersList}
+            className="bg-white/5 text-white px-4 md:px-6 py-3 rounded-lg font-bold flex items-center gap-2 border border-white/10 hover:bg-white/10 transition-all duration-300"
+            title="Baixar lista de membros (TXT)"
           >
-            <Plus size={20} /> Adicionar Membro
+            <Download size={20} /> <span className="hidden md:inline">Baixar Lista</span>
           </button>
-        )}
+          {isEditable && (
+            <button 
+              onClick={openNewMemberModal}
+              className="bg-copper-gradient text-black px-4 md:px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(197,131,106,0.3)] hover:shadow-[0_0_30px_rgba(197,131,106,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95"
+            >
+              <Plus size={20} /> <span className="hidden md:inline">Adicionar Membro</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

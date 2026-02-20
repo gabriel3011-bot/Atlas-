@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X, LogOut, Home, Link } from 'lucide-react';
 import { View } from '../types';
 import { supabase } from '../supabaseClient';
 
@@ -13,6 +13,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, onClose }) => {
   const menuItems = [
+    { id: View.HOME, label: 'Visão Geral', icon: Home },
+    { id: View.MEETINGS, label: 'Hub Reuniões', icon: Link },
     { id: View.DASHBOARD, label: 'Quadro', icon: LayoutDashboard },
     { id: View.FINANCE, label: 'Financeiro', icon: DollarSign },
     { id: View.EVENTS, label: 'Eventos', icon: Calendar },

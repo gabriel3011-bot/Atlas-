@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import KanbanBoard from './components/KanbanBoard';
@@ -12,12 +11,14 @@ import SecretClubGame2048 from './components/SecretClubGame2048';
 import SecretTermoGame from './components/SecretTermoGame';
 import LoginScreen from './components/LoginScreen';
 import FeedbackWidget from './components/FeedbackWidget';
+import HomeDashboard from './components/HomeDashboard';
+import MeetingHub from './components/MeetingHub';
 import { View, UserRole } from './types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Menu, Gamepad2, Sparkles, Trophy, Lock } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
+  const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [activeGame, setActiveGame] = useState<'termo' | '2048'>('termo');
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -95,8 +96,8 @@ const App: React.FC = () => {
     // 1. ADM pode tudo
     if (userRoles.includes('ADM')) return true;
 
-    // 2. Todos podem jogar
-    if (view === View.GAME) return true;
+    // 2. Todos podem jogar e ver Home/Meetings
+    if (view === View.GAME || view === View.HOME || view === View.MEETINGS) return true;
 
     // 3. Todos podem ver e EDITAR membros (Solicitação do Usuário)
     if (view === View.MEMBERS) return true;
@@ -121,6 +122,8 @@ const App: React.FC = () => {
   const renderContent = () => {
     // Passamos userRoles para o Kanban para controle granular de múltiplos cargos
     switch (currentView) {
+      case View.HOME: return <HomeDashboard isEditable={isEditable} userRoles={userRoles} />;
+      case View.MEETINGS: return <MeetingHub isEditable={isEditable} userRoles={userRoles} />;
       case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} userRoles={userRoles} />;
       case View.FINANCE: return <FinanceDashboard isEditable={isEditable} />;
       case View.EVENTS: return <EventsCalendar isEditable={isEditable} />;
@@ -166,7 +169,7 @@ const App: React.FC = () => {
             </div>
           </div>
         );
-      default: return <KanbanBoard isEditable={isEditable} userRoles={userRoles} />;
+      default: return <HomeDashboard isEditable={isEditable} userRoles={userRoles} />;
     }
   };
 

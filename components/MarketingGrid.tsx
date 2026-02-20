@@ -20,12 +20,13 @@ import {
   Grid3X3,
   UserCheck,
   Upload,
-  Loader2
+  Loader2,
+  List
 } from 'lucide-react';
 import { MarketingPost, ViewProps } from '../types';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
-type MarketingViewMode = 'calendar' | 'feed';
+type MarketingViewMode = 'calendar' | 'feed' | 'list';
 
 interface MarketingGridProps extends ViewProps {}
 
@@ -240,6 +241,14 @@ const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
           Feed Preview
           {activeView === 'feed' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
         </button>
+        <button 
+          onClick={() => setActiveView('list')}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 ${activeView === 'list' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+        >
+          <List size={14} />
+          Lista
+          {activeView === 'list' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
+        </button>
       </div>
 
       {/* Conditional Rendering */}
@@ -313,6 +322,43 @@ const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
                 ))}
               </div>
             </div>
+          </div>
+        ) : activeView === 'list' ? (
+          /* LIST VIEW */
+          <div className="bg-[#121212] border border-white/5 rounded-2xl p-6 shadow-xl">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="font-serif text-xl text-white italic">Lista de Postagens</h3>
+             </div>
+             <div className="space-y-3">
+                {posts.length > 0 ? (
+                  posts.map(post => (
+                    <div key={post.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition group">
+                       <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-lg ${post.platform === 'Instagram' ? 'bg-pink-500/10 text-pink-500' : 'bg-gray-800 text-white'}`}>
+                             {post.platform === 'Instagram' ? <Instagram size={20} /> : <Smartphone size={20} />}
+                          </div>
+                          <div>
+                             <p className="font-bold text-white text-sm">{post.caption || 'Sem legenda'}</p>
+                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                <CalendarIcon size={12} />
+                                <span>{new Date(post.scheduled_date).toLocaleDateString('pt-BR')}</span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${post.status === 'posted' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+                                   {post.status === 'posted' ? 'Postado' : 'Agendado'}
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+                       {post.image_url && (
+                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+                             <img src={post.image_url} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                       )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-8 text-sm">Nenhuma postagem encontrada.</p>
+                )}
+             </div>
           </div>
         ) : (
           /* FEED VIEW */

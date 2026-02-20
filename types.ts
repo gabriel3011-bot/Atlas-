@@ -30,8 +30,24 @@ export interface Transaction {
   amount: number;
   type: TransactionType;
   category: string;
+  event_context?: string; // 'launch', 'pre_event_1', 'pre_event_2', 'prom', 'activations', 'general'
   date: string;
   description: string;
+  file_url?: string;
+}
+
+export interface EventCost {
+  id: number;
+  event_name: string;
+  category: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number | null;
+  total_price: number;
+  receipt_url?: string;
+  status: 'planned' | 'paid';
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AppEvent {
@@ -85,14 +101,32 @@ export interface Poll {
   results?: Record<string, number>;
 }
 
+export interface MeetingMinute {
+  id: number;
+  title: string;
+  date: string;
+  file_url: string;
+  created_at?: string;
+}
+
+export interface MeetingLink {
+  id: number;
+  title: string;
+  url: string;
+  date: string;
+  created_at?: string;
+}
+
 // Navigation Types
 export enum View {
+  HOME = 'HOME',
   DASHBOARD = 'DASHBOARD',
   FINANCE = 'FINANCE',
   EVENTS = 'EVENTS',
   MARKETING = 'MARKETING',
   LEGAL = 'LEGAL',
   MEMBERS = 'MEMBERS',
+  MEETINGS = 'MEETINGS',
   VOTING = 'VOTING',
   GAME = 'GAME'
 }
