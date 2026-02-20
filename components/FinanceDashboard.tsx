@@ -26,16 +26,6 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
   const [eventCosts, setEventCosts] = useState<EventCost[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   
-  // Simulator State
-  const [graduates, setGraduates] = useState(120);
-  const [ticketPrice, setTicketPrice] = useState(4500); 
-  const [extraInvitesQty, setExtraInvitesQty] = useState(0);
-  const [extraInvitePrice, setExtraInvitePrice] = useState(350);
-  const [attractionBudget, setAttractionBudget] = useState(150000); 
-  const [preEventsCost, setPreEventsCost] = useState(40000); 
-  const [launchCost, setLaunchCost] = useState(25000); 
-  const [afterCost, setAfterCost] = useState(15000); 
-
   // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -48,6 +38,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
     date: new Date().toISOString().split('T')[0],
     file_url: ''
   });
+  
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,74 +49,59 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
     fetchData();
   }, []);
 
+  const normalizeEventName = (name: string): string => {
+    if (!name) return 'general';
+    const normalized = name.toUpperCase().trim();
+    
+    // Mapeia os nomes que vieram da planilha para os IDs das abas
+    if (normalized.includes('PRÉ EVENTO 1')) return 'pre_event_1';
+    if (normalized.includes('PRÉ EVENTO 2')) return 'pre_event_2';
+    if (normalized.includes('LANÇAMENTO')) return 'launch';
+    if (normalized.includes('BAILE')) return 'prom';
+    if (normalized.includes('BENEFÍCIOS') || normalized.includes('MKT')) return 'activations';
+    
+    return 'general';
+  };
+
   const fetchData = async () => {
     if (isSupabaseConfigured()) {
+      // 1. Busca Transações Gerais
       const { data: transData } = await supabase.from('transactions').select('*').order('date', { ascending: false });
       if (transData) setTransactions(transData);
 
-      const { data: costsData } = await supabase.from('event_costs').select('*').order('category', { ascending: true });
-      if (costsData) setEventCosts(costsData);
+      // 2. Busca a nova tabela 'Orçamento' e converte para o formato do Frontend
+      const { data: orcamentoData, error } = await supabase.from('Orçamento').select('*');
+      
+      if (error) {
+        console.error("Erro ao ler tabela Orçamento:", error);
+      } else if (orcamentoData) {
+        const formatadoParaOFront = orcamentoData.map((item: any) => ({
+          id: item.id,
+          event_name: normalizeEventName(item.Evento),
+          category: item.Categoria || 'Geral',
+          item_name: item.Item,
+          quantity: item.Qtd || 1,
+          unit_price: item['Preço Unitário'] || 0,
+          total_price: item['Preço Total'] || 0,
+          receipt_url: item.nota_fiscal_url,
+          status: item.nota_fiscal_url ? 'paid' : 'pending' // Se tem NF, considera pago
+        }));
+        
+        setEventCosts(formatadoParaOFront);
+      }
     }
   };
 
-  const normalizeEventName = (name: string): string => {
-    const map: Record<string, string> = {
-      'PRÉ EVENTO 1': 'pre_event_1',
-      'PRÉ EVENTO 2': 'pre_event_2',
-      'LANÇAMENTO': 'launch',
-      'BAILE': 'prom',
-      'ATIVAÇÕES': 'activations',
-      'GERAL': 'general',
-      'BENEFÍCIOS TOY': 'pre_event_1' // Exemplo do payload do usuário
-    };
-    return map[name.toUpperCase()] || 'general';
-  };
-
   const handleImportETL = async () => {
-    // Simulação do payload recebido pelo script de ETL
-    const payload = [
-      {
-        "evento": "PRÉ EVENTO 1",
-        "categoria": "1. ESTRUTURA",
-        "item": "Ambulância Remoção",
-        "qtd": 1,
-        "preco_unitario": 950.00,
-        "preco_total": 950.00
-      },
-      {
-        "evento": "Benefícios Toy",
-        "categoria": "Pré Evento 1",
-        "item": "Casa Maria",
-        "qtd": 1,
-        "preco_unitario": null,
-        "preco_total": 25000.00
-      }
-    ];
-
+    // Como a tabela já foi preenchida diretamente via CSV no Supabase, 
+    // este botão agora pode apenas forçar uma recarga dos dados.
     setIsImporting(true);
     try {
-      if (isSupabaseConfigured()) {
-        const upsertData = payload.map(item => ({
-          event_name: normalizeEventName(item.evento),
-          category: item.categoria,
-          item_name: item.item,
-          quantity: item.qtd,
-          unit_price: item.preco_unitario,
-          total_price: item.preco_total,
-          updated_at: new Date().toISOString()
-        }));
-
-        const { error } = await supabase
-          .from('event_costs')
-          .upsert(upsertData, { onConflict: 'event_name,category,item_name' });
-
-        if (error) throw error;
-        await fetchData();
-        alert('Dados de orçamento sincronizados com sucesso!');
-      }
+      await fetchData();
+      alert('Dados do orçamento sincronizados com a base de dados!');
     } catch (error) {
       console.error('Import error:', error);
-      alert('Erro ao importar dados do ETL.');
+      alert('Erro ao sincronizar dados.');
     } finally {
       setIsImporting(false);
     }
@@ -140,29 +116,35 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
       if (isSupabaseConfigured()) {
         const fileExt = receiptFile.name.split('.').pop();
         const fileName = `receipt_${selectedCost.id}_${Date.now()}.${fileExt}`;
+        
+        // Faz o upload para o bucket
         const { error: uploadError } = await supabase.storage.from('finance-receipts').upload(fileName, receiptFile);
         if (uploadError) throw uploadError;
 
+        // Pega a URL pública
         const { data } = supabase.storage.from('finance-receipts').getPublicUrl(fileName);
         fileUrl = data.publicUrl;
 
+        // Atualiza a tabela ORÇAMENTO (usando os nomes reais das colunas no banco)
         const { error: updateError } = await supabase
-          .from('event_costs')
-          .update({ receipt_url: fileUrl, status: 'paid' })
+          .from('Orçamento')
+          .update({ nota_fiscal_url: fileUrl })
           .eq('id', selectedCost.id);
 
         if (updateError) throw updateError;
-        await fetchData();
+        
+        await fetchData(); // Recarrega os dados para mostrar o link na tela
       }
       setIsReceiptModalOpen(false);
       setSelectedCost(null);
       setReceiptFile(null);
     } catch (error) {
       console.error('Receipt upload error:', error);
-      alert('Erro ao enviar comprovante.');
+      alert('Erro ao enviar comprovante. Verifique se o bucket "finance-receipts" existe.');
     }
   };
 
+  // --- LÓGICAS DE EXIBIÇÃO ---
   const filteredCosts = useMemo(() => {
     return eventCosts.filter(c => c.event_name === activeTab);
   }, [eventCosts, activeTab]);
@@ -202,13 +184,14 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                 className="bg-white/5 text-white border border-white/10 px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-white/10 transition-all"
               >
                 {isImporting ? <Loader2 className="animate-spin" size={18} /> : <Database size={18} />}
-                Sincronizar ETL
+                Sincronizar Banco
               </button>
             )}
             {isEditable && (
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-copper-gradient text-black px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-copper-DEFAULT/20 transition-all hover:-translate-y-1"
+                style={{ background: 'linear-gradient(90deg, #b87333 0%, #d4a373 100%)' }} // Fallback de cor
               >
                 <Plus size={18} /> Nova Transação
               </button>
@@ -242,8 +225,8 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
            </h3>
         </div>
         <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
-           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Entradas</span>
-           <h3 className="text-3xl font-serif font-bold text-copper-light italic">
+           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Entradas Reais</span>
+           <h3 className="text-3xl font-serif font-bold italic text-[#d4a373]">
              R$ {totals.collected.toLocaleString('pt-BR')}
            </h3>
         </div>
@@ -254,7 +237,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
            </h3>
         </div>
         <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
-           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Saldo</span>
+           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Saldo em Caixa</span>
            <h3 className={`text-3xl font-serif font-bold italic ${totals.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
              R$ {totals.balance.toLocaleString('pt-BR')}
            </h3>
@@ -265,10 +248,10 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
       <div className="bg-[#121212] border border-white/10 rounded-2xl p-8 shadow-xl">
         <div className="flex justify-between items-center mb-8">
           <h3 className="font-serif text-2xl text-white italic flex items-center gap-3">
-            <List size={24} className="text-copper-light" />
+            <List size={24} className="text-[#d4a373]" />
             Detalhamento de Custos
           </h3>
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Fonte: ETL Sincronizado</span>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Planilha da Agência</span>
         </div>
 
         <div className="space-y-4">
@@ -280,7 +263,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                   className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-copper-light"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#d4a373]"></div>
                     <span className="text-sm font-bold text-white uppercase tracking-wider">{category}</span>
                     <span className="text-[10px] text-gray-500">({items.length} itens)</span>
                   </div>
@@ -288,7 +271,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                     <span className="text-sm font-mono text-gray-400">
                       Total: R$ {items.reduce((acc, i) => acc + Number(i.total_price), 0).toLocaleString('pt-BR')}
                     </span>
-                    {expandedCategories[category] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {expandedCategories[category] ? <ChevronUp size={16} className="text-white" /> : <ChevronDown size={16} className="text-white" />}
                   </div>
                 </button>
 
@@ -306,12 +289,12 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                           <div className="flex flex-col items-end">
                             <span className="text-sm font-mono font-bold text-white">R$ {Number(item.total_price).toLocaleString('pt-BR')}</span>
                             <span className={`text-[9px] uppercase font-black tracking-widest ${item.status === 'paid' ? 'text-green-500' : 'text-yellow-500'}`}>
-                              {item.status === 'paid' ? 'Pago' : 'Pendente'}
+                              {item.status === 'paid' ? 'Comprovante OK' : 'Pendente'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             {item.receipt_url ? (
-                              <a href={item.receipt_url} target="_blank" rel="noopener noreferrer" className="p-2 text-copper-light hover:bg-copper-DEFAULT/10 rounded-lg transition">
+                              <a href={item.receipt_url} target="_blank" rel="noopener noreferrer" className="p-2 text-[#d4a373] hover:bg-[#d4a373]/10 rounded-lg transition" title="Ver Comprovante">
                                 <FileText size={16} />
                               </a>
                             ) : (
@@ -336,13 +319,13 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
           ) : (
             <div className="text-center py-12 text-gray-600">
               <Database size={48} className="mx-auto mb-4 opacity-20" />
-              <p className="text-sm">Nenhum dado de orçamento importado para este evento.</p>
+              <p className="text-sm">Nenhum custo registado para esta aba.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Receipt Upload Modal */}
+      {/* Modal de Upload de Recibos */}
       {isReceiptModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl">
@@ -353,12 +336,12 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
             <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
               <p className="text-xs text-gray-500 uppercase font-bold mb-1">Item selecionado</p>
               <p className="text-white font-bold">{selectedCost?.item_name}</p>
-              <p className="text-copper-light font-mono text-sm mt-1">R$ {selectedCost?.total_price.toLocaleString('pt-BR')}</p>
+              <p className="text-[#d4a373] font-mono text-sm mt-1">R$ {selectedCost?.total_price.toLocaleString('pt-BR')}</p>
             </div>
             <form onSubmit={handleUploadReceipt} className="space-y-6">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-white/10 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-copper-DEFAULT/50 transition-all group"
+                className="border-2 border-dashed border-white/10 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-[#d4a373]/50 transition-all group"
               >
                 {receiptFile ? (
                   <div className="text-center">
@@ -367,8 +350,8 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                   </div>
                 ) : (
                   <>
-                    <Upload size={40} className="text-gray-600 mb-4 group-hover:text-copper-light transition-colors" />
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Clique para selecionar arquivo</p>
+                    <Upload size={40} className="text-gray-600 mb-4 group-hover:text-[#d4a373] transition-colors" />
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Clique para selecionar ficheiro</p>
                   </>
                 )}
                 <input type="file" ref={fileInputRef} className="hidden" onChange={e => setReceiptFile(e.target.files?.[0] || null)} />
@@ -376,28 +359,24 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
               <button 
                 type="submit" 
                 disabled={!receiptFile}
-                className="w-full py-4 bg-copper-gradient text-black font-bold rounded-xl shadow-lg hover:shadow-copper-DEFAULT/30 transition disabled:opacity-50"
+                className="w-full py-4 bg-[#b87333] text-white font-bold rounded-xl shadow-lg hover:bg-[#d4a373] transition disabled:opacity-50"
               >
-                Confirmar Pagamento
+                Confirmar e Anexar
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Existing Add Transaction Modal (Simplified) */}
+      {/* Modal de Nova Transação Simplificado (Mantido o seu original) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">Nova Transação</h3>
+              <h3 className="text-xl font-bold text-white">Nova Transação Manual</h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-white"><X size={20}/></button>
             </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              // Lógica simplificada para o exemplo
-              setIsAddModalOpen(false);
-            }} className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); setIsAddModalOpen(false); }} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Descrição</label>
                 <input type="text" required className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm outline-none" />
@@ -415,7 +394,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-3 bg-copper-DEFAULT text-white rounded-lg font-bold text-sm hover:bg-copper-light transition">Salvar</button>
+              <button type="submit" className="w-full py-3 bg-[#b87333] text-white rounded-lg font-bold text-sm hover:bg-[#d4a373] transition">Guardar</button>
             </form>
           </div>
         </div>
@@ -424,6 +403,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ isEditable }) => {
   );
 };
 
+// Componente simples de Loading caso não tenha o import
 const Loader2 = ({ className, size }: { className?: string, size?: number }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
