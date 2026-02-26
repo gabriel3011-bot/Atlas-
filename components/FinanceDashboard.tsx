@@ -46,11 +46,12 @@ export default function FinanceDashboard({ isEditable = true }) {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   // --- ESTADOS DE CUSTOMIZAÇÃO DOS GRÁFICOS ---
-  const [visibleRevenueStreams, setVisibleRevenueStreams] = useState<Record<string, boolean>>({
+  const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
     'Adesões Integrais': true,
     'Adesões Bolsistas': true,
     'Convites Extras': true,
-    'Mesas Extras': true
+    'Mesas Extras': true,
+    'Não Pagantes': true
   });
   const [costBuffer, setCostBuffer] = useState(0); // Margem de segurança global (%)
   const [companyFeePercent, setCompanyFeePercent] = useState(10); // Fee da empresa (%)
@@ -200,10 +201,27 @@ export default function FinanceDashboard({ isEditable = true }) {
       { name: 'Mesas Extras', valor: revMesas }
     ];
 
-    const filteredBreakdown = fullBreakdown.filter(item => visibleRevenueStreams[item.name]);
+    const filteredBreakdown = fullBreakdown.filter(item => visibleMetrics[item.name]);
     const totalVisivel = filteredBreakdown.reduce((acc, item) => acc + item.valor, 0);
     
     const companyFeeAmount = totalVisivel * (companyFeePercent / 100);
+
+    const headcountFull = [
+      { name: 'Formandos Integrais', qty: adesoesLotes.reduce((acc, l) => acc + l.qty, 0) * 10 },
+      { name: 'Formandos Bolsistas', qty: bolsistasLotes.reduce((acc, l) => acc + l.qty, 0) * 10 },
+      { name: 'Convites Extras', qty: convitesLotes.reduce((acc, l) => acc + l.qty, 0) },
+      { name: 'Mesas Extras', qty: mesasLotes.reduce((acc, l) => acc + l.qty, 0) * 10 },
+      { name: 'Não Pagantes', qty: nonPayingGuestsQty }
+    ];
+
+    const visibleHeadcount = headcountFull.filter(h => {
+      if (h.name === 'Formandos Integrais') return visibleMetrics['Adesões Integrais'];
+      if (h.name === 'Formandos Bolsistas') return visibleMetrics['Adesões Bolsistas'];
+      if (h.name === 'Convites Extras') return visibleMetrics['Convites Extras'];
+      if (h.name === 'Mesas Extras') return visibleMetrics['Mesas Extras'];
+      if (h.name === 'Não Pagantes') return visibleMetrics['Não Pagantes'];
+      return true;
+    });
 
     return {
       total: totalVisivel,
@@ -214,6 +232,7 @@ export default function FinanceDashboard({ isEditable = true }) {
       },
       fee: companyFeeAmount,
       breakdown: filteredBreakdown,
+      headcountData: visibleHeadcount,
       headcount: {
         formandos: adesoesLotes.reduce((acc, l) => acc + l.qty, 0) + bolsistasLotes.reduce((acc, l) => acc + l.qty, 0),
         convitesExtras: convitesLotes.reduce((acc, l) => acc + l.qty, 0),
@@ -221,9 +240,9 @@ export default function FinanceDashboard({ isEditable = true }) {
         staff: nonPayingGuestsQty
       }
     };
-  }, [adesoesLotes, bolsistasLotes, convitesLotes, mesasLotes, nonPayingGuestsQty, visibleRevenueStreams, companyFeePercent]);
+  }, [adesoesLotes, bolsistasLotes, convitesLotes, mesasLotes, nonPayingGuestsQty, visibleMetrics, companyFeePercent]);
 
-  const totalHeadcount = (revenueProjetada.headcount.formandos * 10) + (revenueProjetada.headcount.mesasExtras * 10) + revenueProjetada.headcount.convitesExtras + revenueProjetada.headcount.staff;
+  const totalHeadcount = revenueProjetada.headcountData.reduce((acc, h) => acc + h.qty, 0);
 
   const netProjected = revenueProjetada.total - costsSimulado - revenueProjetada.fee;
 
@@ -245,6 +264,14 @@ export default function FinanceDashboard({ isEditable = true }) {
       valor: items.reduce((acc, i) => acc + (activeItems[i.id] ? Number(i.total_price) : 0), 0)
     })).filter(d => d.valor > 0).sort((a, b) => b.valor - a.valor);
   }, [groupedCosts, activeItems]);
+
+  const costImpactData = useMemo(() => {
+    const totalRev = revenueProjetada.total || 1;
+    return chartData.map(d => ({
+      ...d,
+      percentual: Number(((d.valor / totalRev) * 100).toFixed(1))
+    }));
+  }, [chartData, revenueProjetada.total]);
 
   const revenueVsCostsData = useMemo(() => [
     { name: 'Receita Projetada', valor: revenueProjetada.total, fill: '#2a9d8f' },
@@ -309,19 +336,19 @@ export default function FinanceDashboard({ isEditable = true }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Receita Projetada</span>
-           <h3 className="text-2xl font-serif font-bold text-[#2a9d8f] italic">
+           <h3 className="text-2xl font-mono font-bold text-[#2a9d8f]">
              R$ {revenueProjetada.total.toLocaleString('pt-BR')}
            </h3>
         </div>
         <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Custos Simulados</span>
-           <h3 className="text-2xl font-serif font-bold text-[#e76f51] italic">
+           <h3 className="text-2xl font-mono font-bold text-[#e76f51]">
              R$ {costsSimulado.toLocaleString('pt-BR')}
            </h3>
         </div>
         <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Fee da Empresa ({companyFeePercent}%)</span>
-           <h3 className="text-2xl font-serif font-bold text-amber-500 italic">
+           <h3 className="text-2xl font-mono font-bold text-amber-500">
              - R$ {revenueProjetada.fee.toLocaleString('pt-BR')}
            </h3>
         </div>
@@ -329,7 +356,7 @@ export default function FinanceDashboard({ isEditable = true }) {
            <span className={`text-[10px] font-black uppercase tracking-widest block mb-2 ${netProjected >= 0 ? 'text-green-500' : 'text-red-500'}`}>
              Resultado Estimado
            </span>
-           <h3 className={`text-2xl font-serif font-bold italic flex flex-col ${netProjected >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+           <h3 className={`text-2xl font-mono font-bold flex flex-col ${netProjected >= 0 ? 'text-green-400' : 'text-red-400'}`}>
              R$ {netProjected.toLocaleString('pt-BR')}
              <span className="text-[10px] bg-white/5 px-3 py-1 rounded-full font-sans not-italic text-gray-400 w-fit mt-1">
                Margem: {revenueProjetada.total > 0 ? ((netProjected / revenueProjetada.total) * 100).toFixed(1) : 0}%
@@ -342,15 +369,15 @@ export default function FinanceDashboard({ isEditable = true }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white/5 border border-white/5 rounded-xl p-4 flex justify-between items-center">
           <span className="text-[10px] font-black uppercase text-gray-500">Total Adesões</span>
-          <span className="text-sm font-bold text-white">R$ {revenueProjetada.subtotals.adesoes.toLocaleString('pt-BR')}</span>
+          <span className="text-sm font-bold text-white font-mono">R$ {revenueProjetada.subtotals.adesoes.toLocaleString('pt-BR')}</span>
         </div>
         <div className="bg-white/5 border border-white/5 rounded-xl p-4 flex justify-between items-center">
           <span className="text-[10px] font-black uppercase text-gray-500">Total Convites</span>
-          <span className="text-sm font-bold text-white">R$ {revenueProjetada.subtotals.convites.toLocaleString('pt-BR')}</span>
+          <span className="text-sm font-bold text-white font-mono">R$ {revenueProjetada.subtotals.convites.toLocaleString('pt-BR')}</span>
         </div>
         <div className="bg-white/5 border border-white/5 rounded-xl p-4 flex justify-between items-center">
           <span className="text-[10px] font-black uppercase text-gray-500">Total Mesas</span>
-          <span className="text-sm font-bold text-white">R$ {revenueProjetada.subtotals.mesas.toLocaleString('pt-BR')}</span>
+          <span className="text-sm font-bold text-white font-mono">R$ {revenueProjetada.subtotals.mesas.toLocaleString('pt-BR')}</span>
         </div>
       </div>
 
@@ -373,7 +400,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                     <h3 className="font-serif text-xl text-white italic">Simulador de Receita (Adesões & Extras)</h3>
                   </div>
                   
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* ADESÕES INTEGRAIS */}
                     <div className="space-y-4">
                       <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">Adesões Integrais</h4>
@@ -389,7 +416,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].qty = Number(e.target.value);
                                 setAdesoesLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Qtd"
                             />
                             <input 
@@ -400,7 +427,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].price = Number(e.target.value);
                                 setAdesoesLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Valor"
                             />
                           </div>
@@ -423,7 +450,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].qty = Number(e.target.value);
                                 setConvitesLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Qtd"
                             />
                             <input 
@@ -434,7 +461,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].price = Number(e.target.value);
                                 setConvitesLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Valor"
                             />
                           </div>
@@ -457,7 +484,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].qty = Number(e.target.value);
                                 setMesasLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Qtd"
                             />
                             <input 
@@ -468,7 +495,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].price = Number(e.target.value);
                                 setMesasLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Valor"
                             />
                           </div>
@@ -491,7 +518,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].qty = Number(e.target.value);
                                 setBolsistasLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Qtd"
                             />
                             <input 
@@ -502,7 +529,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                 newLotes[idx].price = Number(e.target.value);
                                 setBolsistasLotes(newLotes);
                               }}
-                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373]"
+                              className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373]"
                               placeholder="Valor"
                             />
                           </div>
@@ -513,22 +540,42 @@ export default function FinanceDashboard({ isEditable = true }) {
                             type="number" 
                             value={nonPayingGuestsQty} 
                             onChange={e => setNonPayingGuestsQty(Number(e.target.value))}
-                            className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-[#d4a373] col-span-2"
-                          />
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 items-center">
-                          <span className="text-[10px] text-amber-500 font-bold uppercase">Fee Empresa (%)</span>
-                          <input 
-                            type="number" 
-                            value={companyFeePercent} 
-                            onChange={e => setCompanyFeePercent(Number(e.target.value))}
-                            className="bg-amber-500/10 border border-amber-500/20 rounded p-2 text-xs text-amber-500 outline-none focus:border-amber-500 col-span-2"
+                            className="bg-black/50 border border-white/10 rounded p-2 text-xs text-white font-mono outline-none focus:border-[#d4a373] col-span-2"
                           />
                         </div>
                         <div className="bg-[#d4a373]/10 border border-[#d4a373]/20 rounded-lg p-3 mt-4">
                           <span className="text-[10px] font-black text-[#d4a373] uppercase block">Headcount Total</span>
-                          <span className="text-white font-bold">{totalHeadcount} pessoas</span>
+                          <span className="text-white font-bold font-mono">{totalHeadcount} pessoas</span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* GESTÃO DE FEE DA EMPRESA */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-black text-amber-500 uppercase tracking-widest border-b border-amber-500/20 pb-2">Gestão de Fee da Empresa</h4>
+                      <div className="space-y-4 bg-amber-500/5 p-4 rounded-xl border border-amber-500/10">
+                        <div className="grid grid-cols-3 gap-3 items-center">
+                          <span className="text-[10px] text-amber-500 font-bold uppercase">Fee (%)</span>
+                          <input 
+                            type="number" 
+                            value={companyFeePercent} 
+                            onChange={e => setCompanyFeePercent(Number(e.target.value))}
+                            className="bg-amber-500/10 border border-amber-500/20 rounded p-2 text-xs text-amber-500 font-mono outline-none focus:border-amber-500 col-span-2"
+                          />
+                        </div>
+                        <div className="space-y-2 border-t border-amber-500/10 pt-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-gray-500 uppercase">Faturamento Base</span>
+                            <span className="text-xs font-bold text-white font-mono">R$ {revenueProjetada.total.toLocaleString('pt-BR')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-amber-500 uppercase font-bold">Fee Calculado</span>
+                            <span className="text-xs font-bold text-amber-500 font-mono">R$ {revenueProjetada.fee.toLocaleString('pt-BR')}</span>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-gray-600 italic leading-tight">
+                          O fee é calculado sobre o faturamento visível (após filtros de métricas).
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -568,7 +615,7 @@ export default function FinanceDashboard({ isEditable = true }) {
                                   </button>
                                   <div className="flex flex-col">
                                     <span className={`text-sm font-medium ${activeItems[item.id] ? 'text-gray-200' : 'text-gray-500 line-through'}`}>{item.item_name}</span>
-                                    <span className="text-[10px] text-gray-500">{item.quantity}x {item.unit_price ? `R$ ${item.unit_price.toLocaleString('pt-BR')}` : 'Valor Global'}</span>
+                                    <span className="text-[10px] text-gray-500 font-mono">{item.quantity}x {item.unit_price ? `R$ ${item.unit_price.toLocaleString('pt-BR')}` : 'Valor Global'}</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-6">
@@ -610,21 +657,21 @@ export default function FinanceDashboard({ isEditable = true }) {
                 {/* CONTROLES DE CUSTOMIZAÇÃO DOS GRÁFICOS */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <div className="flex flex-col lg:flex-row gap-8 justify-between">
-                    {/* FILTRO DE RECEITAS */}
+                    {/* FILTRO DE MÉTRICAS */}
                     <div className="space-y-4 flex-1">
-                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Filtrar Receitas no Gráfico</h4>
+                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Personalizar Métricas nos Gráficos</h4>
                       <div className="flex flex-wrap gap-3">
-                        {Object.keys(visibleRevenueStreams).map(stream => (
+                        {Object.keys(visibleMetrics).map(metric => (
                           <button
-                            key={stream}
-                            onClick={() => setVisibleRevenueStreams(prev => ({ ...prev, [stream]: !prev[stream] }))}
+                            key={metric}
+                            onClick={() => setVisibleMetrics(prev => ({ ...prev, [metric]: !prev[metric] }))}
                             className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                              visibleRevenueStreams[stream] 
+                              visibleMetrics[metric] 
                                 ? 'bg-[#2a9d8f]/20 border-[#2a9d8f] text-[#2a9d8f]' 
                                 : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
                             }`}
                           >
-                            {stream}
+                            {metric}
                           </button>
                         ))}
                       </div>
@@ -759,6 +806,56 @@ export default function FinanceDashboard({ isEditable = true }) {
                           <YAxis dataKey="name" type="category" width={100} stroke="#666" tick={{fontSize: 10}} />
                           <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} contentStyle={{ backgroundColor: '#121212', borderColor: '#333' }} />
                           <Bar dataKey="valor" fill="#d4a373" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* GRÁFICO 5: DISTRIBUIÇÃO DE PÚBLICO (HEADCOUNT) */}
+                  <div className="bg-black/20 rounded-xl p-6 border border-white/5">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Distribuição de Público (Headcount)</h4>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        {chartType === 'pie' ? (
+                          <PieChart>
+                            <Pie data={revenueProjetada.headcountData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="qty">
+                              {revenueProjetada.headcountData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={CORES_GRAFICO[(index + 5) % CORES_GRAFICO.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => `${value} pessoas`} contentStyle={{ backgroundColor: '#121212', borderColor: '#333' }} />
+                            <Legend />
+                          </PieChart>
+                        ) : (
+                          <BarChart data={revenueProjetada.headcountData}>
+                            <XAxis dataKey="name" stroke="#666" fontSize={10} />
+                            <YAxis stroke="#666" fontSize={12} />
+                            <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} formatter={(value) => `${value} pessoas`} contentStyle={{ backgroundColor: '#121212', borderColor: '#333' }} />
+                            <Bar dataKey="qty">
+                              {revenueProjetada.headcountData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={CORES_GRAFICO[(index + 5) % CORES_GRAFICO.length]} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        )}
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* GRÁFICO 6: IMPACTO DOS CUSTOS NA RECEITA (%) */}
+                  <div className="bg-black/20 rounded-xl p-6 border border-white/5">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Impacto dos Custos na Receita (%)</h4>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={costImpactData} layout="vertical" margin={{ left: 20 }}>
+                          <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} stroke="#666" />
+                          <YAxis dataKey="name" type="category" width={100} stroke="#666" tick={{fontSize: 10}} />
+                          <Tooltip 
+                            cursor={{fill: 'rgba(255,255,255,0.05)'}} 
+                            formatter={(value, name, props) => [`${value}% (R$ ${props.payload.valor.toLocaleString('pt-BR')})`, 'Impacto']}
+                            contentStyle={{ backgroundColor: '#121212', borderColor: '#333' }} 
+                          />
+                          <Bar dataKey="percentual" fill="#e76f51" radius={[0, 4, 4, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>

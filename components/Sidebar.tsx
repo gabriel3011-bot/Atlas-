@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LayoutDashboard, DollarSign, Calendar, Megaphone, FileText, Users, BarChart3, Trophy, X, LogOut, Home, Link } from 'lucide-react';
-import { View } from '../types';
+import { View, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
 
 interface SidebarProps {
@@ -9,21 +9,26 @@ interface SidebarProps {
   setCurrentView: (view: View) => void;
   isOpen: boolean;
   onClose: () => void;
+  userRoles: UserRole[];
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, onClose, userRoles }) => {
   const menuItems = [
-    { id: View.HOME, label: 'Visão Geral', icon: Home },
-    { id: View.MEETINGS, label: 'Hub Reuniões', icon: Link },
-    { id: View.DASHBOARD, label: 'Quadro', icon: LayoutDashboard },
-    { id: View.FINANCE, label: 'Financeiro', icon: DollarSign },
-    { id: View.EVENTS, label: 'Eventos', icon: Calendar },
-    { id: View.MARKETING, label: 'Marketing', icon: Megaphone },
-    { id: View.LEGAL, label: 'Jurídico', icon: FileText },
-    { id: View.MEMBERS, label: 'Membros', icon: Users },
-    { id: View.VOTING, label: 'Votações', icon: BarChart3 },
-    { id: View.GAME, label: 'Secret Club', icon: Trophy },
+    { id: View.HOME, label: 'Visão Geral', icon: Home, roles: ['ANY'] },
+    { id: View.MEETINGS, label: 'Hub Reuniões', icon: Link, roles: ['ANY'] },
+    { id: View.DASHBOARD, label: 'Quadro', icon: LayoutDashboard, roles: ['ANY'] },
+    { id: View.FINANCE, label: 'Financeiro', icon: DollarSign, roles: ['ADM', 'FINANCEIRO'] },
+    { id: View.EVENTS, label: 'Eventos', icon: Calendar, roles: ['ADM', 'EVENTOS'] },
+    { id: View.MARKETING, label: 'Marketing', icon: Megaphone, roles: ['ADM', 'MARKETING'] },
+    { id: View.LEGAL, label: 'Jurídico', icon: FileText, roles: ['ADM', 'JURIDICO'] },
+    { id: View.MEMBERS, label: 'Membros', icon: Users, roles: ['ANY'] },
+    { id: View.VOTING, label: 'Votações', icon: BarChart3, roles: ['ANY'] },
+    { id: View.GAME, label: 'Secret Club', icon: Trophy, roles: ['ANY'] },
   ];
+
+  const filteredMenuItems = menuItems.filter(item => 
+    item.roles.includes('ANY') || userRoles.includes('ADM') || item.roles.some(role => userRoles.includes(role as UserRole))
+  );
 
   const handleNavClick = (view: View) => {
     setCurrentView(view);
@@ -82,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
 
       {/* Navigation */}
       <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
           return (

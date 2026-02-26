@@ -193,6 +193,7 @@ const App: React.FC = () => {
         setCurrentView={setCurrentView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        userRoles={userRoles}
       />
       
       {isSidebarOpen && (

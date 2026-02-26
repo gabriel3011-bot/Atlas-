@@ -21,12 +21,15 @@ import {
   UserCheck,
   Upload,
   Loader2,
-  List
+  List,
+  Trello,
+  GanttChartSquare,
+  AlertCircle
 } from 'lucide-react';
-import { MarketingPost, ViewProps } from '../types';
+import { MarketingPost, ViewProps, MarketingStatus } from '../types';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
-type MarketingViewMode = 'calendar' | 'feed' | 'list';
+type MarketingViewMode = 'calendar' | 'feed' | 'list' | 'kanban' | 'timeline';
 
 interface MarketingGridProps extends ViewProps {}
 
@@ -224,18 +227,34 @@ const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
       </div>
 
       {/* View Switcher Tabs */}
-      <div className="flex border-b border-white/5 space-x-10 mb-8">
+      <div className="flex border-b border-white/5 space-x-8 mb-8 overflow-x-auto pb-2 custom-scrollbar">
         <button 
           onClick={() => setActiveView('calendar')}
-          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 ${activeView === 'calendar' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 ${activeView === 'calendar' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
         >
           <CalendarIcon size={14} />
           Calendário
           {activeView === 'calendar' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
         </button>
         <button 
+          onClick={() => setActiveView('kanban')}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 ${activeView === 'kanban' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+        >
+          <Trello size={14} />
+          Kanban
+          {activeView === 'kanban' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
+        </button>
+        <button 
+          onClick={() => setActiveView('timeline')}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 ${activeView === 'timeline' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+        >
+          <GanttChartSquare size={14} />
+          Linha do Tempo
+          {activeView === 'timeline' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-copper-gradient shadow-[0_0_10px_#C5836A]"></div>}
+        </button>
+        <button 
           onClick={() => setActiveView('feed')}
-          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 ${activeView === 'feed' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 ${activeView === 'feed' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
         >
           <LayoutGrid size={14} />
           Feed Preview
@@ -243,7 +262,7 @@ const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
         </button>
         <button 
           onClick={() => setActiveView('list')}
-          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 ${activeView === 'list' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
+          className={`pb-4 px-2 text-sm font-bold uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 ${activeView === 'list' ? 'text-copper-light' : 'text-gray-600 hover:text-gray-400'}`}
         >
           <List size={14} />
           Lista
@@ -323,41 +342,180 @@ const MarketingGrid: React.FC<MarketingGridProps> = ({ isEditable }) => {
               </div>
             </div>
           </div>
+        ) : activeView === 'kanban' ? (
+          /* KANBAN VIEW */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-h-[600px]">
+            {(['idea', 'scheduled', 'posted'] as MarketingStatus[]).map(status => (
+              <div key={status} className="flex flex-col gap-4 bg-white/[0.02] border border-white/5 rounded-3xl p-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+                    {status === 'idea' ? '💡 Ideias' : status === 'scheduled' ? '📅 Agendados' : '✅ Postados'}
+                  </h4>
+                  <span className="text-[10px] font-bold text-gray-700 bg-white/5 px-2 py-0.5 rounded-full">
+                    {posts.filter(p => p.status === status).length}
+                  </span>
+                </div>
+                
+                <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
+                  {posts.filter(p => p.status === status).map(post => (
+                    <div key={post.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-4 shadow-xl hover:border-copper-DEFAULT/30 transition-all group">
+                      {post.image_url && (
+                        <div className="w-full aspect-video rounded-xl overflow-hidden mb-3 border border-white/5">
+                          <img src={post.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-300 font-medium mb-3 line-clamp-3 italic">"{post.caption}"</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <div className="flex items-center gap-2">
+                          {post.platform === 'Instagram' ? <Instagram size={12} className="text-pink-500" /> : <Video size={12} className="text-white" />}
+                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{post.platform}</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-gray-600">
+                          {new Date(post.scheduled_date).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {isEditable && status === 'idea' && (
+                    <button 
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="w-full py-4 border-2 border-dashed border-white/5 rounded-2xl text-gray-600 hover:text-copper-light hover:border-copper-DEFAULT/20 hover:bg-white/5 transition-all flex flex-col items-center gap-2"
+                    >
+                      <Plus size={20} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Nova Ideia</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : activeView === 'timeline' ? (
+          /* TIMELINE VIEW */
+          <div className="bg-zinc-900/30 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl overflow-x-auto custom-scrollbar">
+            <div className="min-w-[1200px] relative">
+              <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-white/5 -translate-y-1/2"></div>
+              <div className="flex justify-between items-center gap-12 relative z-10">
+                {posts.sort((a,b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).map((post, idx) => {
+                  const date = new Date(post.scheduled_date);
+                  const isPast = date < new Date();
+                  const diffTime = date.getTime() - new Date().getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                  return (
+                    <div key={post.id} className={`flex flex-col items-center gap-4 transition-all hover:-translate-y-2 ${idx % 2 === 0 ? 'mt-32' : 'mb-32 flex-col-reverse'}`}>
+                      <div className={`w-48 bg-zinc-900 border rounded-2xl p-4 shadow-2xl relative ${isPast ? 'border-green-500/20 opacity-60' : 'border-copper-DEFAULT/20'}`}>
+                        <div className={`absolute left-1/2 w-[1px] h-16 bg-white/10 -translate-x-1/2 ${idx % 2 === 0 ? '-top-16' : '-bottom-16'}`}></div>
+                        <div className={`absolute left-1/2 w-3 h-3 rounded-full bg-copper-DEFAULT -translate-x-1/2 ${idx % 2 === 0 ? '-top-[68px]' : '-bottom-[68px]'}`}></div>
+                        
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[9px] font-black text-copper-light uppercase tracking-widest">{post.platform}</span>
+                          <span className={`text-[8px] font-bold px-2 py-0.5 rounded ${isPast ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                            {isPast ? 'Concluído' : `${diffDays} dias`}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-300 line-clamp-2 mb-2 italic">"{post.caption}"</p>
+                        <div className="text-[9px] font-mono text-gray-600 flex items-center gap-1">
+                          <Clock size={10} />
+                          {date.toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em]">{date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' })}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         ) : activeView === 'list' ? (
           /* LIST VIEW */
-          <div className="bg-[#121212] border border-white/5 rounded-2xl p-6 shadow-xl">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-serif text-xl text-white italic">Lista de Postagens</h3>
+          <div className="bg-[#121212] border border-white/5 rounded-2xl p-6 shadow-xl overflow-hidden">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="font-serif text-xl text-white italic">Gestão de Prazos & Conteúdo</h3>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/5 border border-green-500/10 rounded-lg">
+                    <Check size={12} className="text-green-500" />
+                    <span className="text-[10px] font-bold text-green-500 uppercase">Postados: {posts.filter(p => p.status === 'posted').length}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/5 border border-amber-500/10 rounded-lg">
+                    <Clock size={12} className="text-amber-500" />
+                    <span className="text-[10px] font-bold text-amber-500 uppercase">Pendentes: {posts.filter(p => p.status !== 'posted').length}</span>
+                  </div>
+                </div>
              </div>
-             <div className="space-y-3">
-                {posts.length > 0 ? (
-                  posts.map(post => (
-                    <div key={post.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition group">
-                       <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-lg ${post.platform === 'Instagram' ? 'bg-pink-500/10 text-pink-500' : 'bg-gray-800 text-white'}`}>
-                             {post.platform === 'Instagram' ? <Instagram size={20} /> : <Smartphone size={20} />}
-                          </div>
-                          <div>
-                             <p className="font-bold text-white text-sm">{post.caption || 'Sem legenda'}</p>
-                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                <CalendarIcon size={12} />
-                                <span>{new Date(post.scheduled_date).toLocaleDateString('pt-BR')}</span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${post.status === 'posted' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-                                   {post.status === 'posted' ? 'Postado' : 'Agendado'}
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                 <thead>
+                   <tr className="border-b border-white/5">
+                     <th className="pb-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Conteúdo</th>
+                     <th className="pb-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Plataforma</th>
+                     <th className="pb-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</th>
+                     <th className="pb-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Prazo / Data</th>
+                     <th className="pb-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Ações</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-white/5">
+                    {posts.length > 0 ? (
+                      posts.map(post => {
+                        const date = new Date(post.scheduled_date);
+                        const isOverdue = date < new Date() && post.status !== 'posted';
+                        return (
+                          <tr key={post.id} className="group hover:bg-white/[0.02] transition-colors">
+                            <td className="py-4">
+                              <div className="flex items-center gap-3">
+                                {post.image_url ? (
+                                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                    <img src={post.image_url} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                                    <ImageIcon size={16} className="text-gray-600" />
+                                  </div>
+                                )}
+                                <span className="text-sm text-gray-300 font-medium truncate max-w-[200px] italic">"{post.caption || 'Sem legenda'}"</span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex items-center gap-2">
+                                {post.platform === 'Instagram' ? <Instagram size={14} className="text-pink-500" /> : <Video size={14} className="text-white" />}
+                                <span className="text-xs text-gray-400">{post.platform}</span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                post.status === 'posted' ? 'bg-green-500/10 text-green-500' : 
+                                post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-500' : 
+                                'bg-gray-500/10 text-gray-500'
+                              }`}>
+                                {post.status === 'posted' ? 'Postado' : post.status === 'scheduled' ? 'Agendado' : 'Ideia'}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex flex-col">
+                                <span className={`text-xs font-bold ${isOverdue ? 'text-red-500' : 'text-gray-300'}`}>
+                                  {date.toLocaleDateString('pt-BR')}
                                 </span>
-                             </div>
-                          </div>
-                       </div>
-                       {post.image_url && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
-                             <img src={post.image_url} alt="Preview" className="w-full h-full object-cover" />
-                          </div>
-                       )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500 py-8 text-sm">Nenhuma postagem encontrada.</p>
-                )}
+                                {isOverdue && (
+                                  <span className="text-[9px] text-red-500/70 flex items-center gap-1">
+                                    <AlertCircle size={10} /> Atrasado
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 text-right">
+                              <button className="p-2 text-gray-600 hover:text-white transition">
+                                <MoreHorizontal size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-gray-600 text-sm italic">Nenhuma postagem encontrada.</td>
+                      </tr>
+                    )}
+                 </tbody>
+               </table>
              </div>
           </div>
         ) : (
