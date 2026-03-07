@@ -13,6 +13,7 @@ import LoginScreen from './components/LoginScreen';
 import FeedbackWidget from './components/FeedbackWidget';
 import HomeDashboard from './components/HomeDashboard';
 import MeetingHub from './components/MeetingHub';
+import Breadcrumb from './components/Breadcrumb';
 import { View, UserRole } from './types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Menu, Gamepad2, Sparkles, Trophy, Lock } from 'lucide-react';
@@ -219,6 +220,8 @@ const App: React.FC = () => {
         </header>
 
         <div className="flex-1 w-full px-4 md:px-12 py-8 max-w-[1600px] mx-auto transition-all duration-500">
+           <Breadcrumb currentView={currentView} setCurrentView={setCurrentView} />
+           
            {/* Visual Indicator of Read-Only Mode */}
            {!isEditable && currentView !== View.GAME && currentView !== View.DASHBOARD && (
              <div className="mb-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg w-fit">
