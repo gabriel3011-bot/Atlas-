@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { ViewProps, MeetingMinute, MeetingLink } from '../types';
-import { FileText, Link as LinkIcon, Plus, Download, ExternalLink, Trash2, Upload, Calendar } from 'lucide-react';
+import { FileText, Link as LinkIcon, Plus, Download, ExternalLink, Trash2, Upload, Calendar, Eye, X } from 'lucide-react';
 
 const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
   const [activeTab, setActiveTab] = useState<'minutes' | 'links'>('minutes');
@@ -11,16 +11,24 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
   
   // Upload State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadContent, setUploadContent] = useState('');
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDate, setUploadDate] = useState(new Date().toISOString().split('T')[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // View Minute State
+  const [viewMinute, setViewMinute] = useState<MeetingMinute | null>(null);
 
   // Link State
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkDate, setLinkDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Delete State
+  const [itemToDelete, setItemToDelete] = useState<{type: 'minute' | 'link', id: number} | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -40,25 +48,37 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFile) return;
 
     try {
-      let fileUrl = '';
       if (isSupabaseConfigured()) {
-        const fileExt = uploadFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('meeting-files')
-          .upload(fileName, uploadFile);
+        let newMinuteData: any = { title: uploadTitle, date: uploadDate };
 
-        if (uploadError) throw uploadError;
+        if (uploadMode === 'file') {
+          if (!uploadFile) {
+            alert('Selecione um arquivo.');
+            return;
+          }
+          const fileExt = uploadFile.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('meeting-files')
+            .upload(fileName, uploadFile);
 
-        const { data } = supabase.storage.from('meeting-files').getPublicUrl(fileName);
-        fileUrl = data.publicUrl;
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from('meeting-files').getPublicUrl(fileName);
+          newMinuteData.file_url = data.publicUrl;
+        } else {
+          if (!uploadContent.trim()) {
+            alert('Digite o conteúdo da ata.');
+            return;
+          }
+          newMinuteData.content = uploadContent;
+        }
 
         const { data: newMinute, error: dbError } = await supabase
           .from('meeting_minutes')
-          .insert([{ title: uploadTitle, date: uploadDate, file_url: fileUrl }])
+          .insert([newMinuteData])
           .select();
         
         if (dbError) throw dbError;
@@ -67,10 +87,12 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
       
       setIsUploadModalOpen(false);
       setUploadFile(null);
+      setUploadContent('');
       setUploadTitle('');
+      setUploadMode('file');
     } catch (error) {
       console.error('Error uploading minute:', error);
-      alert('Erro ao salvar ata.');
+      alert('Erro ao salvar ata. Verifique se o banco de dados foi atualizado.');
     }
   };
 
@@ -95,19 +117,33 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
     }
   };
 
-  const handleDeleteMinute = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta ata?')) return;
-    if (isSupabaseConfigured()) {
-      await supabase.from('meeting_minutes').delete().eq('id', id);
-      setMinutes(minutes.filter(m => m.id !== id));
-    }
+  const handleDeleteMinute = (id: number) => {
+    setItemToDelete({ type: 'minute', id });
   };
 
-  const handleDeleteLink = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este link?')) return;
-    if (isSupabaseConfigured()) {
-      await supabase.from('meeting_links').delete().eq('id', id);
-      setLinks(links.filter(l => l.id !== id));
+  const handleDeleteLink = (id: number) => {
+    setItemToDelete({ type: 'link', id });
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      if (itemToDelete.type === 'minute') {
+        if (isSupabaseConfigured()) {
+          await supabase.from('meeting_minutes').delete().eq('id', itemToDelete.id);
+          setMinutes(minutes.filter(m => m.id !== itemToDelete.id));
+        }
+      } else {
+        if (isSupabaseConfigured()) {
+          await supabase.from('meeting_links').delete().eq('id', itemToDelete.id);
+          setLinks(links.filter(l => l.id !== itemToDelete.id));
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    } finally {
+      setItemToDelete(null);
     }
   };
 
@@ -167,15 +203,25 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a 
-                      href={minute.file_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:text-copper-light hover:bg-white/5 rounded-lg transition-colors"
-                      title="Baixar"
-                    >
-                      <Download size={18} />
-                    </a>
+                    {minute.content ? (
+                      <button 
+                        onClick={() => setViewMinute(minute)}
+                        className="p-2 text-gray-500 hover:text-copper-light hover:bg-white/5 rounded-lg transition-colors"
+                        title="Ler Ata"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    ) : minute.file_url ? (
+                      <a 
+                        href={minute.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-500 hover:text-copper-light hover:bg-white/5 rounded-lg transition-colors"
+                        title="Baixar"
+                      >
+                        <Download size={18} />
+                      </a>
+                    ) : null}
                     {isEditable && (
                       <button 
                         onClick={() => handleDeleteMinute(minute.id)}
@@ -255,6 +301,24 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">Nova Ata</h3>
+            
+            <div className="flex bg-black/50 p-1 rounded-lg mb-4">
+              <button
+                type="button"
+                onClick={() => setUploadMode('file')}
+                className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-md transition-colors ${uploadMode === 'file' ? 'bg-copper-DEFAULT text-white' : 'text-gray-500 hover:text-white'}`}
+              >
+                Arquivo
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('text')}
+                className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-md transition-colors ${uploadMode === 'text' ? 'bg-copper-DEFAULT text-white' : 'text-gray-500 hover:text-white'}`}
+              >
+                Texto
+              </button>
+            </div>
+
             <form onSubmit={handleFileUpload} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Título</label>
@@ -276,16 +340,32 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
                   className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-copper-DEFAULT outline-none [color-scheme:dark]"
                 />
               </div>
-              <div>
-                <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Arquivo (PDF/Doc)</label>
-                <input 
-                  type="file" 
-                  required
-                  ref={fileInputRef}
-                  onChange={e => setUploadFile(e.target.files?.[0] || null)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-copper-DEFAULT outline-none"
-                />
-              </div>
+              
+              {uploadMode === 'file' ? (
+                <div>
+                  <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Arquivo (PDF/Doc)</label>
+                  <input 
+                    type="file" 
+                    required
+                    ref={fileInputRef}
+                    onChange={e => setUploadFile(e.target.files?.[0] || null)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-copper-DEFAULT outline-none"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Conteúdo da Ata</label>
+                  <textarea 
+                    required
+                    value={uploadContent}
+                    onChange={e => setUploadContent(e.target.value)}
+                    rows={6}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-copper-DEFAULT outline-none resize-none"
+                    placeholder="Digite os pontos discutidos na reunião..."
+                  />
+                </div>
+              )}
+
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setIsUploadModalOpen(false)} className="flex-1 py-3 text-gray-400 hover:text-white font-bold text-sm">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-copper-DEFAULT text-white rounded-lg font-bold text-sm hover:bg-copper-light transition">Salvar</button>
@@ -336,6 +416,58 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
                 <button type="submit" className="flex-1 py-3 bg-copper-DEFAULT text-white rounded-lg font-bold text-sm hover:bg-copper-light transition">Salvar</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Confirmar Exclusão</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              Tem certeza que deseja excluir {itemToDelete.type === 'minute' ? 'esta ata' : 'este link'}? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setItemToDelete(null)} 
+                className="flex-1 py-3 text-gray-400 hover:text-white font-bold text-sm bg-white/5 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="flex-1 py-3 bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded-lg font-bold text-sm transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Minute Modal */}
+      {viewMinute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white">{viewMinute.title}</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(viewMinute.date).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              <button onClick={() => setViewMinute(null)} className="text-gray-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto bg-black/30 rounded-xl p-4 border border-white/5 whitespace-pre-wrap text-sm text-gray-300">
+              {viewMinute.content}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setViewMinute(null)} className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-sm transition-colors">
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

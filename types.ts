@@ -105,7 +105,8 @@ export interface MeetingMinute {
   id: number;
   title: string;
   date: string;
-  file_url: string;
+  file_url?: string | null;
+  content?: string | null;
   created_at?: string;
 }
 
