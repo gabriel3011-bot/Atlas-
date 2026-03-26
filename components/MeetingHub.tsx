@@ -36,13 +36,56 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
 
   const fetchData = async () => {
     setLoading(true);
+    let loadedMinutes: MeetingMinute[] = [];
+    let loadedLinks: MeetingLink[] = [];
+    
     if (isSupabaseConfigured()) {
-      const { data: minutesData } = await supabase.from('meeting_minutes').select('*').order('date', { ascending: false });
-      if (minutesData) setMinutes(minutesData);
+      try {
+        const { data: minutesData, error: minutesError } = await supabase.from('meeting_minutes').select('*').order('date', { ascending: false });
+        if (minutesData) loadedMinutes = minutesData;
+        if (minutesError) throw minutesError;
+      } catch (error) {
+        console.error("Error fetching minutes from Supabase:", error);
+      }
 
-      const { data: linksData } = await supabase.from('meeting_links').select('*').order('date', { ascending: false });
-      if (linksData) setLinks(linksData);
+      try {
+        const { data: linksData, error: linksError } = await supabase.from('meeting_links').select('*').order('date', { ascending: false });
+        if (linksData) loadedLinks = linksData;
+        if (linksError) throw linksError;
+      } catch (error) {
+        console.error("Error fetching links from Supabase:", error);
+      }
     }
+    
+    // Load local fallback minutes and merge
+    const localMinutesStr = localStorage.getItem('localMinutes');
+    if (localMinutesStr) {
+      try {
+        const localMinutes: MeetingMinute[] = JSON.parse(localMinutesStr);
+        // Merge local minutes that don't exist in Supabase
+        const existingIds = new Set(loadedMinutes.map(m => m.id));
+        const newLocalMinutes = localMinutes.filter(m => !existingIds.has(m.id));
+        loadedMinutes = [...newLocalMinutes, ...loadedMinutes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      } catch (e) {
+        console.error("Error parsing local minutes", e);
+      }
+    }
+    
+    // Load local fallback links and merge
+    const localLinksStr = localStorage.getItem('localLinks');
+    if (localLinksStr) {
+      try {
+        const localLinks: MeetingLink[] = JSON.parse(localLinksStr);
+        const existingIds = new Set(loadedLinks.map(l => l.id));
+        const newLocalLinks = localLinks.filter(l => !existingIds.has(l.id));
+        loadedLinks = [...newLocalLinks, ...loadedLinks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      } catch (e) {
+        console.error("Error parsing local links", e);
+      }
+    }
+    
+    setMinutes(loadedMinutes);
+    setLinks(loadedLinks);
     setLoading(false);
   };
 
@@ -83,6 +126,8 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
         
         if (dbError) throw dbError;
         if (newMinute) setMinutes([newMinute[0], ...minutes]);
+      } else {
+        throw new Error("Supabase is not configured");
       }
       
       setIsUploadModalOpen(false);
@@ -90,9 +135,37 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
       setUploadContent('');
       setUploadTitle('');
       setUploadMode('file');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading minute:', error);
-      alert('Erro ao salvar ata. Verifique se o banco de dados foi atualizado.');
+      if (isSupabaseConfigured()) {
+        alert(`Erro ao salvar ata: ${error.message || 'Verifique se a coluna "content" existe na tabela meeting_minutes.'}`);
+      }
+      
+      // Fallback local para não travar o uso
+      const fallbackMinute: MeetingMinute = {
+        id: Date.now(),
+        title: uploadTitle,
+        date: uploadDate,
+        content: uploadMode === 'text' ? uploadContent : undefined,
+        file_url: uploadMode === 'file' ? 'local-file' : undefined
+      };
+      const newMinutes = [fallbackMinute, ...minutes];
+      setMinutes(newMinutes);
+      
+      // Save local fallback
+      const existingStr = localStorage.getItem('localMinutes');
+      let localMinutes = [];
+      if (existingStr) {
+        try { localMinutes = JSON.parse(existingStr); } catch (e) {}
+      }
+      localMinutes = [fallbackMinute, ...localMinutes];
+      localStorage.setItem('localMinutes', JSON.stringify(localMinutes));
+      
+      setIsUploadModalOpen(false);
+      setUploadFile(null);
+      setUploadContent('');
+      setUploadTitle('');
+      setUploadMode('file');
     }
   };
 
@@ -107,13 +180,39 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
         
         if (error) throw error;
         if (newLink) setLinks([newLink[0], ...links]);
+      } else {
+        throw new Error("Supabase is not configured");
       }
       setIsLinkModalOpen(false);
       setLinkTitle('');
       setLinkUrl('');
     } catch (error) {
       console.error('Error adding link:', error);
-      alert('Erro ao salvar link.');
+      if (isSupabaseConfigured()) {
+        alert('Erro ao salvar link.');
+      }
+      
+      const fallbackLink: MeetingLink = {
+        id: Date.now(),
+        title: linkTitle,
+        url: linkUrl,
+        date: linkDate
+      };
+      
+      const newLinks = [fallbackLink, ...links];
+      setLinks(newLinks);
+      
+      const existingStr = localStorage.getItem('localLinks');
+      let localLinks = [];
+      if (existingStr) {
+        try { localLinks = JSON.parse(existingStr); } catch (e) {}
+      }
+      localLinks = [fallbackLink, ...localLinks];
+      localStorage.setItem('localLinks', JSON.stringify(localLinks));
+      
+      setIsLinkModalOpen(false);
+      setLinkTitle('');
+      setLinkUrl('');
     }
   };
 
@@ -131,13 +230,47 @@ const MeetingHub: React.FC<ViewProps> = ({ isEditable }) => {
     try {
       if (itemToDelete.type === 'minute') {
         if (isSupabaseConfigured()) {
-          await supabase.from('meeting_minutes').delete().eq('id', itemToDelete.id);
-          setMinutes(minutes.filter(m => m.id !== itemToDelete.id));
+          try {
+            await supabase.from('meeting_minutes').delete().eq('id', itemToDelete.id);
+          } catch (e) {
+            console.error("Error deleting from supabase", e);
+          }
+        }
+        const updatedMinutes = minutes.filter(m => m.id !== itemToDelete.id);
+        setMinutes(updatedMinutes);
+        
+        // Also remove from local storage if it exists there
+        const localMinutesStr = localStorage.getItem('localMinutes');
+        if (localMinutesStr) {
+          try {
+            const localMinutes: any[] = JSON.parse(localMinutesStr);
+            const updatedLocalMinutes = localMinutes.filter(m => m.id !== itemToDelete.id);
+            localStorage.setItem('localMinutes', JSON.stringify(updatedLocalMinutes));
+          } catch (e) {
+            console.error("Error updating local minutes on delete", e);
+          }
         }
       } else {
         if (isSupabaseConfigured()) {
-          await supabase.from('meeting_links').delete().eq('id', itemToDelete.id);
-          setLinks(links.filter(l => l.id !== itemToDelete.id));
+          try {
+            await supabase.from('meeting_links').delete().eq('id', itemToDelete.id);
+          } catch (e) {
+            console.error("Error deleting link from supabase", e);
+          }
+        }
+        const updatedLinks = links.filter(l => l.id !== itemToDelete.id);
+        setLinks(updatedLinks);
+        
+        // Also remove from local storage if it exists there
+        const localLinksStr = localStorage.getItem('localLinks');
+        if (localLinksStr) {
+          try {
+            const localLinks: any[] = JSON.parse(localLinksStr);
+            const updatedLocalLinks = localLinks.filter(l => l.id !== itemToDelete.id);
+            localStorage.setItem('localLinks', JSON.stringify(updatedLocalLinks));
+          } catch (e) {
+            console.error("Error updating local links on delete", e);
+          }
         }
       }
     } catch (error) {

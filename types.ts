@@ -11,6 +11,7 @@ export type UserRole = 'ADM' | 'FINANCEIRO' | 'MARKETING' | 'EVENTOS' | 'JURIDIC
 export interface ViewProps {
   isEditable: boolean;
   userRoles?: UserRole[]; // Alterado de userRole?: UserRole para array
+  onNavigate?: (view: View) => void;
 }
 
 export interface Task {
@@ -116,6 +117,11 @@ export interface MeetingLink {
   url: string;
   date: string;
   created_at?: string;
+}
+
+export interface SystemSettings {
+  id: number;
+  adherents_count: number;
 }
 
 // Navigation Types

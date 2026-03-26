@@ -123,7 +123,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     // Passamos userRoles para o Kanban para controle granular de múltiplos cargos
     switch (currentView) {
-      case View.HOME: return <HomeDashboard isEditable={isEditable} userRoles={userRoles} />;
+      case View.HOME: return <HomeDashboard isEditable={isEditable} userRoles={userRoles} onNavigate={setCurrentView} />;
       case View.MEETINGS: return <MeetingHub isEditable={isEditable} userRoles={userRoles} />;
       case View.DASHBOARD: return <KanbanBoard isEditable={isEditable} userRoles={userRoles} />;
       case View.FINANCE: return <FinanceDashboard isEditable={isEditable} />;

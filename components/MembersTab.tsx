@@ -32,12 +32,30 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
   }, []);
 
   const fetchMembers = async () => {
+    let loadedMembers: Member[] = [];
     if (isSupabaseConfigured()) {
-      const { data } = await supabase.from('committee_members').select('*').order('id', { ascending: false });
-      if (data) setMembers(data);
-    } else {
-      setMembers([]);
+      try {
+        const { data, error } = await supabase.from('committee_members').select('*').order('id', { ascending: false });
+        if (data) loadedMembers = data;
+        if (error) throw error;
+      } catch (e) {
+        console.error("Error fetching members from Supabase", e);
+      }
     }
+    
+    const localMembersStr = localStorage.getItem('localMembers');
+    if (localMembersStr) {
+      try {
+        const localMembers: Member[] = JSON.parse(localMembersStr);
+        const existingIds = new Set(loadedMembers.map(m => m.id));
+        const newLocalMembers = localMembers.filter(m => !existingIds.has(m.id));
+        loadedMembers = [...newLocalMembers, ...loadedMembers].sort((a, b) => b.id - a.id);
+      } catch (e) {
+        console.error("Error parsing local members", e);
+      }
+    }
+    
+    setMembers(loadedMembers);
   };
 
   const openNewMemberModal = () => {
@@ -66,9 +84,17 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
     if (!formData.name || !formData.role) return;
 
     setIsUploading(true);
-    try {
-        let finalPhotoUrl = formData.photo_url || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=200&q=80';
+    let finalPhotoUrl = formData.photo_url || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=200&q=80';
+    let memberPayload: any = {
+        name: formData.name,
+        role: formData.role,
+        phone: formData.phone || '',
+        photo_url: finalPhotoUrl,
+        cpf: formData.cpf,
+        address: formData.address
+    };
 
+    try {
         // Se houver arquivo selecionado, faz upload e atualiza a URL
         if (selectedFile && isSupabaseConfigured()) {
             // Preview local imediato se upload falhar (fallback)
@@ -95,14 +121,7 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
             }
         }
 
-        const memberPayload = {
-            name: formData.name,
-            role: formData.role,
-            phone: formData.phone || '',
-            photo_url: finalPhotoUrl,
-            cpf: formData.cpf,
-            address: formData.address
-        };
+        memberPayload.photo_url = finalPhotoUrl;
 
         if (isSupabaseConfigured()) {
             if (editingId) {
@@ -128,13 +147,7 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
                 if (data) setMembers([data[0], ...members]);
             }
         } else {
-            // Modo Offline / Fallback
-            if (editingId) {
-                setMembers(prev => prev.map(m => m.id === editingId ? { ...m, ...memberPayload } : m));
-            } else {
-                const mockMember: Member = { ...memberPayload, id: Date.now() } as Member;
-                setMembers([mockMember, ...members]);
-            }
+            throw new Error("Supabase is not configured");
         }
 
         setIsModalOpen(false);
@@ -143,8 +156,38 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
         setEditingId(null);
     } catch (err) {
         console.error('Erro ao salvar membro:', err);
-        const errorMessage = (err as any).message || String(err);
-        alert(`Erro ao salvar membro: ${errorMessage}`);
+        if (isSupabaseConfigured()) {
+            const errorMessage = (err as any).message || String(err);
+            alert(`Erro ao salvar membro: ${errorMessage}`);
+        }
+        
+        // Modo Offline / Fallback
+        let updatedMembers = [...members];
+        if (editingId) {
+            updatedMembers = updatedMembers.map(m => m.id === editingId ? { ...m, ...memberPayload } : m);
+        } else {
+            const mockMember: Member = { ...memberPayload, id: Date.now() } as Member;
+            updatedMembers = [mockMember, ...updatedMembers];
+        }
+        setMembers(updatedMembers);
+        
+        // Save local fallback
+        const existingStr = localStorage.getItem('localMembers');
+        let localMembers = [];
+        if (existingStr) {
+            try { localMembers = JSON.parse(existingStr); } catch (e) {}
+        }
+        if (editingId) {
+            localMembers = localMembers.map(m => m.id === editingId ? { ...m, ...memberPayload } : m);
+        } else {
+            localMembers = [{ ...memberPayload, id: updatedMembers[0].id }, ...localMembers];
+        }
+        localStorage.setItem('localMembers', JSON.stringify(localMembers));
+
+        setIsModalOpen(false);
+        setFormData({ name: '', role: '', phone: '', photo_url: '', cpf: '', address: '' });
+        setSelectedFile(null);
+        setEditingId(null);
     } finally {
         setIsUploading(false);
     }
@@ -155,11 +198,28 @@ const MembersTab: React.FC<MembersTabProps> = ({ isEditable }) => {
       
       try {
           if (isSupabaseConfigured()) {
-              const { error } = await supabase.from('committee_members').delete().eq('id', memberToDelete.id);
-              if (error) throw error;
+              try {
+                  const { error } = await supabase.from('committee_members').delete().eq('id', memberToDelete.id);
+                  if (error) throw error;
+              } catch (e) {
+                  console.error("Error deleting from supabase", e);
+              }
           }
           
-          setMembers(members.filter(m => m.id !== memberToDelete.id));
+          const updatedMembers = members.filter(m => m.id !== memberToDelete.id);
+          setMembers(updatedMembers);
+          
+          const localMembersStr = localStorage.getItem('localMembers');
+          if (localMembersStr) {
+              try {
+                  const localMembers: any[] = JSON.parse(localMembersStr);
+                  const updatedLocalMembers = localMembers.filter(m => m.id !== memberToDelete.id);
+                  localStorage.setItem('localMembers', JSON.stringify(updatedLocalMembers));
+              } catch (e) {
+                  console.error("Error updating local members on delete", e);
+              }
+          }
+          
           setIsDeleteModalOpen(false);
           setMemberToDelete(null);
           setIsModalOpen(false); // Fecha modal de edição se estiver aberto no delete
