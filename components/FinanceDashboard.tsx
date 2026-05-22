@@ -21,7 +21,7 @@ type EventCost = {
   status: string;
 };
 
-const ABAS = ['Lançamento', 'Pré Evento 1', 'Pré Evento 2', 'Baile', 'Ativações', 'Geral'];
+const ABAS = ['Lançamento', 'Pré Evento 2', 'Baile', 'After', 'Ativações', 'Geral'];
 const CORES_GRAFICO = ['#d4a373', '#b87333', '#e9c46a', '#2a9d8f', '#e76f51', '#264653', '#8ab17d', '#f4a261', '#219ebc'];
 
 export default function FinanceDashboard({ isEditable = true }) {
@@ -108,10 +108,10 @@ export default function FinanceDashboard({ isEditable = true }) {
     if (!name) return 'Geral';
     const normalized = name.toUpperCase().trim();
     if (normalized === 'LANÇAMENTO ONLINE' || normalized.includes('LANÇAMENTO')) return 'Lançamento';
-    if (normalized.includes('PRÉ EVENTO 1')) return 'Pré Evento 1';
     if (normalized.includes('PRÉ EVENTO 2')) return 'Pré Evento 2';
     if (normalized.includes('BAILE')) return 'Baile';
-    if (normalized === 'AFTER' || normalized.includes('BENEFÍCIOS') || normalized.includes('MKT')) return 'Ativações';
+    if (normalized === 'AFTER') return 'After';
+    if (normalized.includes('BENEFÍCIOS') || normalized.includes('MKT')) return 'Ativações';
     return 'Geral';
   };
 
