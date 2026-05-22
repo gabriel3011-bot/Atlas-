@@ -21,15 +21,16 @@ type EventCost = {
   status: string;
 };
 
-const ABAS = ['Lançamento', 'Pré-Evento 1', 'Pré-Evento 2', 'Baile', 'Ativações', 'Geral'];
+const ABAS = ['Lançamento', 'Pré Evento 1', 'Pré Evento 2', 'Baile', 'Ativações', 'Geral'];
 const CORES_GRAFICO = ['#d4a373', '#b87333', '#e9c46a', '#2a9d8f', '#e76f51', '#264653', '#8ab17d', '#f4a261', '#219ebc'];
 
 export default function FinanceDashboard({ isEditable = true }) {
   const [activeTab, setActiveTab] = useState('Baile');
-  const [viewMode, setViewMode] = useState<'list' | 'charts' | 'compare'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'charts' | 'compare' | 'payments'>('list');
   
   const [eventCosts, setEventCosts] = useState<EventCost[]>([]);
   const [loading, setLoading] = useState(false);
+  const [rlsWarning, setRlsWarning] = useState(false);
   
   // Estado para a SIMULAÇÃO (quais itens estão "ligados")
   const [activeItems, setActiveItems] = useState<Record<number, boolean>>({});
@@ -89,6 +90,16 @@ export default function FinanceDashboard({ isEditable = true }) {
 
   const [nonPayingGuestsQty, setNonPayingGuestsQty] = useState(20);
 
+  // --- STATOS DO MÓDULO DE PAGAMENTOS ---
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentForm, setPaymentForm] = useState({
+    description: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    category: 'Baile'
+  });
+  const [isAddingPayment, setIsAddingPayment] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -96,32 +107,55 @@ export default function FinanceDashboard({ isEditable = true }) {
   const normalizeEventName = (name: string): string => {
     if (!name) return 'Geral';
     const normalized = name.toUpperCase().trim();
-    if (normalized.includes('PRÉ EVENTO 1')) return 'Pré-Evento 1';
-    if (normalized.includes('PRÉ EVENTO 2')) return 'Pré-Evento 2';
-    if (normalized.includes('LANÇAMENTO')) return 'Lançamento';
+    if (normalized === 'LANÇAMENTO ONLINE' || normalized.includes('LANÇAMENTO')) return 'Lançamento';
+    if (normalized.includes('PRÉ EVENTO 1')) return 'Pré Evento 1';
+    if (normalized.includes('PRÉ EVENTO 2')) return 'Pré Evento 2';
     if (normalized.includes('BAILE')) return 'Baile';
-    if (normalized.includes('BENEFÍCIOS') || normalized.includes('MKT')) return 'Ativações';
+    if (normalized === 'AFTER' || normalized.includes('BENEFÍCIOS') || normalized.includes('MKT')) return 'Ativações';
     return 'Geral';
   };
 
   const fetchData = async () => {
     setLoading(true);
     if (isSupabaseConfigured()) {
-      const { data: orcamentoData } = await supabase.from('Orçamento').select('*');
+      // 1. Fetch Custos (Orçamento)
+      let orcamentoData = null;
+      let rlsWarning = false;
+      const { data: rowsData, error: err1 } = await supabase.from('Orçamento').select('*');
+      console.log('Fetch Orçamento:', { rowsData, err1 });
       
-      if (orcamentoData) {
+      if (err1 && err1.code !== 'PGRST116') {
+         console.error("Erro ao buscar Orçamento:", err1);
+      }
+      
+      if (rowsData && rowsData.length > 0) {
+        orcamentoData = rowsData;
+      } else {
+        const { data: oldData, error: err2 } = await supabase.from('orcamento_rows').select('*');
+        console.log('Fetch orcamento_rows:', { oldData, err2 });
+        if (oldData && oldData.length > 0) {
+          orcamentoData = oldData;
+        } else if (rowsData?.length === 0 && oldData?.length === 0) {
+           // Both tables exist but returned 0 rows or tables don't have policies
+           setRlsWarning(true);
+        }
+      }
+      
+      if (orcamentoData && orcamentoData.length > 0) {
+        setRlsWarning(false);
         const formatado = orcamentoData.map((item: any) => ({
           id: item.id,
-          event_name: normalizeEventName(item.Evento),
-          category: item.Categoria || 'Geral',
-          item_name: item.Item,
-          quantity: item.Qtd || 1,
-          unit_price: item['Preço Unitário'] || 0,
-          total_price: item['Preço Total'] || 0,
+          event_name: normalizeEventName(item.Evento || item.evento),
+          category: item.Categoria || item.categoria || 'Geral',
+          item_name: item.Item || item.item,
+          quantity: item.Qtd || item.qtd || 1,
+          unit_price: item['Preço Unitário'] || item['preço unitário'] || item.preco_unitario || 0,
+          total_price: item['Preço Total'] || item['preço total'] || item.preco_total || 0,
           receipt_url: item.nota_fiscal_url,
           status: item.nota_fiscal_url ? 'paid' : 'pending'
         }));
         
+        console.log('Dados formatados:', formatado);
         setEventCosts(formatado);
 
         // Inicia a simulação com todos os itens LIGADOS (true)
@@ -131,7 +165,34 @@ export default function FinanceDashboard({ isEditable = true }) {
         });
         setActiveItems(initialActiveState);
       }
+
+      // 2. Fetch Pagamentos Realizados (Transactions)
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('type', 'expense')
+        .order('date', { ascending: false });
+
+      if (transactionsData) {
+        setPayments(transactionsData);
+      }
     }
+    
+    // Load local fallback payments Se necessário
+    const localPaymentsStr = localStorage.getItem('localFinancePayments');
+    if (localPaymentsStr) {
+      try {
+        const localPayments = JSON.parse(localPaymentsStr);
+        setPayments(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newLocal = localPayments.filter((m: any) => !existingIds.has(m.id));
+          return [...prev, ...newLocal].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+      } catch (e) {
+        console.error("Error parsing local payments", e);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -177,9 +238,75 @@ export default function FinanceDashboard({ isEditable = true }) {
     }
   };
 
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.description || !paymentForm.amount || !paymentForm.date) {
+        alert('Preencha os campos obrigatórios (Descrição, Valor, Data).');
+        return;
+    }
+
+    try {
+        const newPayment = {
+            amount: Number(paymentForm.amount),
+            type: 'expense',
+            description: paymentForm.description,
+            date: paymentForm.date,
+            category: activeTab
+        };
+
+        if (isSupabaseConfigured()) {
+            const { data, error } = await supabase.from('transactions').insert([newPayment]).select();
+            if (error) throw error;
+            if (data) {
+                setPayments(prev => [data[0], ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            }
+        } else {
+            const mockEntry = { ...newPayment, id: Date.now() };
+            setPayments(prev => [mockEntry, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            
+            // local fallback
+            const existingStr = localStorage.getItem('localFinancePayments');
+            let localPayments = existingStr ? JSON.parse(existingStr) : [];
+            localPayments = [mockEntry, ...localPayments];
+            localStorage.setItem('localFinancePayments', JSON.stringify(localPayments));
+        }
+
+        setIsAddingPayment(false);
+        setPaymentForm(prev => ({ ...prev, description: '', amount: '' }));
+    } catch (error) {
+        console.error("Erro ao registrar pagamento:", error);
+        alert('Erro ao registrar pagamento.');
+    }
+  };
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  const handleDeletePayment = async (id: number) => {
+    try {
+        if (isSupabaseConfigured()) {
+            const { error } = await supabase.from('transactions').delete().eq('id', id);
+            if (error) throw error;
+        }
+        
+        setPayments(prev => prev.filter(p => p.id !== id));
+        
+        const existingStr = localStorage.getItem('localFinancePayments');
+        if (existingStr) {
+            let localPayments = JSON.parse(existingStr);
+            localPayments = localPayments.filter((p: any) => p.id !== id);
+            localStorage.setItem('localFinancePayments', JSON.stringify(localPayments));
+        }
+    } catch (error) {
+        console.error("Erro ao deletar pagamento:", error);
+        alert("Erro ao excluir pagamento.");
+    } finally {
+        setDeleteConfirmId(null);
+    }
+  };
+
   // --- LÓGICA DE DADOS (FILTROS E SIMULAÇÕES) ---
 
-  const costsForActiveTab = useMemo(() => eventCosts.filter(c => c.event_name === activeTab), [eventCosts, activeTab]);
+  const costsForActiveTab = useMemo(() => activeTab === 'Geral' ? eventCosts : eventCosts.filter(c => c.event_name === activeTab), [eventCosts, activeTab]);
   
   const budgetOriginal = costsForActiveTab.reduce((acc, c) => acc + Number(c.total_price), 0);
   const costsSimuladoRaw = costsForActiveTab.reduce((acc, c) => acc + (activeItems[c.id] ? Number(c.total_price) : 0), 0);
@@ -319,8 +446,8 @@ export default function FinanceDashboard({ isEditable = true }) {
         </div>
       </div>
 
-      {/* SUB-MENU DE VISÕES (Lista, Gráficos, Comparar) */}
-      <div className="flex gap-4 p-1 bg-white/5 rounded-xl w-fit">
+      {/* SUB-MENU DE VISÕES (Lista, Gráficos, Comparar, Pagamentos) */}
+      <div className="flex gap-4 p-1 bg-white/5 rounded-xl w-fit flex-wrap">
         <button onClick={() => setViewMode('list')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-[#121212] text-white shadow' : 'text-gray-400 hover:text-white'}`}>
           <List size={16} /> Lista & Simulador
         </button>
@@ -329,6 +456,9 @@ export default function FinanceDashboard({ isEditable = true }) {
         </button>
         <button onClick={() => setViewMode('compare')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'compare' ? 'bg-[#121212] text-white shadow' : 'text-gray-400 hover:text-white'}`}>
           <Scale size={16} /> Comparar Eventos
+        </button>
+        <button onClick={() => setViewMode('payments')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'payments' ? 'bg-[#121212] text-white shadow' : 'text-gray-400 hover:text-white'}`}>
+          <ArrowRight size={16} /> Pagamentos Realizados
         </button>
       </div>
 
@@ -646,7 +776,24 @@ export default function FinanceDashboard({ isEditable = true }) {
                         )}
                       </div>
                     ))
-                  ) : <div className="text-center py-12 text-gray-600"><Database size={48} className="mx-auto mb-4 opacity-20" /><p>Nenhum custo encontrado para este evento.</p></div>}
+                  ) : (
+                    <div className="text-center py-12 text-gray-600">
+                      <Database size={48} className="mx-auto mb-4 opacity-20" />
+                      {rlsWarning ? (
+                        <>
+                          <p className="text-amber-500 font-bold mb-2">Atenção: Os dados parecem estar bloqueados (RLS).</p>
+                          <p className="text-gray-400 text-sm max-w-lg mx-auto">
+                            A tabela <b>Orçamento</b> ou <b>orcamento_rows</b> foi encontrada no Supabase, mas retornou 0 linhas. 
+                            Isso geralmente ocorre quando você faz upload de um CSV, pois o Supabase ativa o <i>Row Level Security (RLS)</i> por padrão.
+                            <br/><br/>
+                            Vá até o Supabase &gt; Authentication &gt; Policies e crie uma política (policy) permitindo "SELECT" para todos, ou desative o RLS para a tabela.
+                          </p>
+                        </>
+                      ) : (
+                        <p>Nenhum custo encontrado para este evento.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -896,6 +1043,149 @@ export default function FinanceDashboard({ isEditable = true }) {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* --- MODO: PAGAMENTOS --- */}
+            {viewMode === 'payments' && (
+              <div className="flex flex-col gap-6 animate-in fade-in">
+                {/* Resumo da Aba Ativa */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                  <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Custos da Aba ({activeTab})</span>
+                    <h3 className="text-2xl font-mono font-bold text-gray-300">
+                      R$ {costsSimulado.toLocaleString('pt-BR')}
+                    </h3>
+                  </div>
+                  <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Pagamentos Realizados</span>
+                    <h3 className="text-2xl font-mono font-bold text-[#e76f51]">
+                      R$ {(activeTab === 'Geral' ? payments : payments.filter(p => p.category === activeTab)).reduce((acc, p) => acc + Number(p.amount), 0).toLocaleString('pt-BR')}
+                    </h3>
+                  </div>
+                  <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 shadow-xl">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Saldo a Pagar</span>
+                    <h3 className="text-2xl font-mono font-bold text-[#2a9d8f]">
+                      R$ {(costsSimulado - (activeTab === 'Geral' ? payments : payments.filter(p => p.category === activeTab)).reduce((acc, p) => acc + Number(p.amount), 0)).toLocaleString('pt-BR')}
+                    </h3>
+                  </div>
+                </div>
+
+                {isEditable && activeTab !== 'Geral' && (
+                  <div className="bg-black/20 rounded-xl border border-white/5 p-6 mb-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-serif text-xl italic text-white">Lançar Pagamento</h4>
+                      <button 
+                        onClick={() => setIsAddingPayment(!isAddingPayment)}
+                        className="bg-[#d4a373]/20 text-[#d4a373] p-2 rounded-lg hover:bg-[#d4a373]/30 transition"
+                      >
+                        {isAddingPayment ? <X size={20} /> : <Plus size={20} />}
+                      </button>
+                    </div>
+
+                    {isAddingPayment && (
+                      <form onSubmit={handleAddPayment} className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-top-4">
+                        <div className="md:col-span-1">
+                           <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Data</label>
+                           <input 
+                             type="date"
+                             required
+                             value={paymentForm.date}
+                             onChange={e => setPaymentForm({...paymentForm, date: e.target.value})}
+                             className="w-full bg-[#121212] border border-white/10 text-white p-3 rounded-lg outline-none focus:border-[#d4a373]"
+                           />
+                        </div>
+                        <div className="md:col-span-2">
+                           <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">O que é (Comentário)</label>
+                           <input 
+                             type="text"
+                             required
+                             placeholder="Ex: Sinal do salão"
+                             value={paymentForm.description}
+                             onChange={e => setPaymentForm({...paymentForm, description: e.target.value})}
+                             className="w-full bg-[#121212] border border-white/10 text-white p-3 rounded-lg outline-none focus:border-[#d4a373]"
+                           />
+                        </div>
+                        <div className="md:col-span-1">
+                           <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Quanto foi (R$)</label>
+                           <input 
+                             type="number"
+                             required
+                             min="0"
+                             step="0.01"
+                             placeholder="Valor"
+                             value={paymentForm.amount}
+                             onChange={e => setPaymentForm({...paymentForm, amount: e.target.value})}
+                             className="w-full bg-[#121212] border border-white/10 text-white p-3 rounded-lg outline-none focus:border-[#d4a373]"
+                           />
+                        </div>
+                        <div className="md:col-span-4 mt-2 flex justify-end">
+                          <button type="submit" className="bg-[#b87333] hover:bg-[#d4a373] text-white font-bold py-3 px-8 rounded-xl transition">
+                            Registrar Pagamento
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-black/20 rounded-xl border border-white/5 p-6">
+                  <h4 className="font-serif text-xl italic text-white mb-6">Histórico de Pagamentos ({activeTab})</h4>
+                  {(activeTab === 'Geral' ? payments : payments.filter(p => p.category === activeTab)).length === 0 ? (
+                    <div className="text-center py-10">
+                      <FileText className="mx-auto text-gray-600 mb-4" size={40} />
+                      <p className="text-gray-500 text-sm">Nenhum pagamento registrado para esta aba até o momento.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(activeTab === 'Geral' ? payments : payments.filter(p => p.category === activeTab)).map(p => (
+                        <div key={p.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition group">
+                          <div className="flex items-center gap-4">
+                            <div className="bg-[#d4a373]/20 p-3 rounded-lg text-[#d4a373]">
+                               <ArrowRight size={20} className="rotate-45" />
+                            </div>
+                            <div>
+                               <p className="text-white font-bold">{p.description}</p>
+                               <p className="text-xs text-gray-400 font-mono mt-1">{new Date(p.date).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6 mt-4 md:mt-0">
+                            <span className="text-[#e76f51] font-mono font-bold text-lg">R$ {Number(p.amount).toLocaleString('pt-BR')}</span>
+                            {isEditable && (
+                              <div className="flex items-center">
+                                {deleteConfirmId === p.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-red-500 font-bold uppercase">Deletar?</span>
+                                    <button 
+                                      onClick={() => handleDeletePayment(p.id)}
+                                      className="text-white hover:text-red-500 transition bg-red-500/20 px-2 py-1 rounded"
+                                    >
+                                      Sim
+                                    </button>
+                                    <button 
+                                      onClick={() => setDeleteConfirmId(null)}
+                                      className="text-gray-400 hover:text-white transition px-2 py-1"
+                                    >
+                                      Não
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => setDeleteConfirmId(p.id)}
+                                    className="text-gray-500 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+                                    title="Excluir Pagamento"
+                                  >
+                                    <X size={20} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
